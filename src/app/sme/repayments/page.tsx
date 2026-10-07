@@ -48,7 +48,7 @@ export default async function RepaymentsPage() {
         <Divider />
         <RepaymentTimeline repayments={repayments} />
       </Card>
-      <div className="grid xl:grid-cols-[1fr_1.6fr] gap-6">
+      <div className="grid xl:grid-cols-[360px_1fr] gap-6">
         <Card>
           <CardHeader eyebrow="Repayment profile" title="Cash-flow-aware timing" />
           <div className="space-y-5">
@@ -68,8 +68,8 @@ export default async function RepaymentsPage() {
                 {repayments.map((r) => (
                   <tr key={r.id}>
                     <td className="tnum text-ink-3">{r.sequence}</td>
-                    <td className="tnum">{formatDate(r.dueDate)}</td>
-                    <td className="tnum text-ink-2">{new Date(r.windowStart).getDate()}–{new Date(r.windowEnd).getDate()}</td>
+                    <td className="tnum whitespace-nowrap">{formatDate(r.dueDate)}</td>
+                    <td className="tnum text-ink-2 whitespace-nowrap">{new Date(r.windowStart).getDate()}–{new Date(r.windowEnd).getDate()}</td>
                     <td className="num tnum">{formatNaira(r.principalPortion)}</td>
                     <td className="num tnum">{formatNaira(r.interestPortion)}</td>
                     <td className="num tnum font-medium">{formatNaira(r.amount)}</td>

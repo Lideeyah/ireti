@@ -51,8 +51,8 @@ export function ApplicationQueue({ rows, limit, compact = false }: { rows: Queue
             { value: "rejected", label: "Rejected", count: count("rejected") }, { value: "disbursed", label: "Disbursed", count: count("disbursed") }, { value: "at_risk", label: "At risk", count: count("at_risk") },
           ]} />
           <div className="flex items-center gap-2">
-            <div className="relative"><Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-3" /><Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Business name / application ID" className="pl-8 w-[280px]" /></div>
-            <Select value={sort} onChange={(e) => setSort(e.target.value as Sort)} className="w-[140px]"><option value="newest">Newest</option><option value="amount">Amount</option><option value="risk">Risk</option><option value="score">Score</option></Select>
+            <div className="relative w-[300px]"><Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-3" /><Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Business name / application ID" className="pl-8" /></div>
+            <div className="w-[150px]"><Select value={sort} onChange={(e) => setSort(e.target.value as Sort)}><option value="newest">Newest</option><option value="amount">Amount</option><option value="risk">Risk</option><option value="score">Score</option></Select></div>
           </div>
         </div>
       )}
@@ -64,7 +64,7 @@ export function ApplicationQueue({ rows, limit, compact = false }: { rows: Queue
               {list.map(({ app, business, assessment, plan }) => (
                 <tr key={app.id} className="row-link" onClick={() => router.push(`/bank/applications/${app.id}`)}>
                   <td className="tnum font-medium text-ink whitespace-nowrap">{app.reference}</td>
-                  <td><div className="text-ink">{business.name}</div><div className="text-[12.5px] text-ink-3">{business.industry} · {business.location}</div></td>
+                  <td><div className="text-ink whitespace-nowrap">{business.name}</div><span className="sub">{business.industry} · {business.location}</span></td>
                   <td className="num tnum text-ink">{formatNaira(app.amount)}</td>
                   <td><div className="flex items-center gap-2.5"><span className="tnum text-ink w-7">{assessment.score}</span><RatingChip rating={assessment.band} /></div></td>
                   <td><RiskGradeChip score={assessment.score} /></td>

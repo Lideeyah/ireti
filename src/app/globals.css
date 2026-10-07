@@ -147,28 +147,34 @@ html, body {
   border-radius: var(--radius-card);
 }
 
-/* Data table rules: sunken header, subtle dividers, no zebra striping. */
-.data-table { width: 100%; border-collapse: separate; border-spacing: 0; }
-.surface:has(> .data-table) { overflow-x: auto; }
+/* Data table rules: sunken header, subtle dividers, no zebra striping.
+   Cell insets align with card padding (24px at the edges, 16px between columns). */
+.data-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13.5px; }
 .data-table thead th {
   background: var(--bg-surface-sunken);
   color: var(--text-secondary);
   font-weight: 500;
   font-size: 12px;
+  letter-spacing: 0.01em;
   text-align: left;
-  padding: 8px 12px;
+  padding: 10px 16px;
   border-bottom: 1px solid var(--border-default);
   white-space: nowrap;
 }
 .data-table tbody td {
-  padding: 10px 12px;
+  padding: 14px 16px;
   border-bottom: 1px solid var(--border-subtle);
   vertical-align: middle;
+  line-height: 1.35;
 }
+.data-table th:first-child, .data-table td:first-child { padding-left: 24px; }
+.data-table th:last-child, .data-table td:last-child { padding-right: 24px; }
 .data-table tbody tr:last-child td { border-bottom: none; }
 .data-table tbody tr.row-link { cursor: pointer; }
 .data-table tbody tr.row-link:hover td { background: var(--bg-surface-hover); }
-.data-table td.num, .data-table th.num { text-align: right; font-variant-numeric: tabular-nums lining-nums; }
+.data-table td.num, .data-table th.num { text-align: right; font-variant-numeric: tabular-nums lining-nums; white-space: nowrap; }
+.data-table td .sub { display: block; font-size: 12.5px; color: var(--text-muted); margin-top: 2px; }
+.surface:has(> .data-table) { overflow-x: auto; }
 
 @keyframes fade-up {
   from { opacity: 0; transform: translateY(4px); }
@@ -189,5 +195,7 @@ html, body {
   .fade-up, .pulse-dot, .spin { animation: none; }
 }
 
-input, select, textarea, button { font: inherit; color: inherit; }
+@layer base {
+  input, select, textarea, button { font: inherit; color: inherit; }
+}
 input::placeholder, textarea::placeholder { color: var(--text-disabled); }

@@ -39,8 +39,8 @@ export function AuditTable({ events }: { events: AuditEvent[] }) {
   return (
     <>
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-        <Select value={group} onChange={(e) => setGroup(e.target.value)} className="w-[240px]"><option value="all">All event types</option>{Object.keys(GROUPS).map((g) => <option key={g}>{g}</option>)}</Select>
-        <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Application ID, actor, event or hash prefix" className="w-[340px]" />
+        <div className="w-[240px]"><Select value={group} onChange={(e) => setGroup(e.target.value)}><option value="all">All event types</option>{Object.keys(GROUPS).map((g) => <option key={g}>{g}</option>)}</Select></div>
+        <div className="w-[360px]"><Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Application ID, actor, event or hash prefix" /></div>
       </div>
       <Card padded={false}>
         {list.length === 0 ? <EmptyState icon={ScrollText} title="No events match" /> : (
@@ -53,12 +53,12 @@ export function AuditTable({ events }: { events: AuditEvent[] }) {
                 return (
                   <FragmentRow key={e.id}>
                     <tr className="row-link" onClick={() => setExpanded(open ? null : e.id)}>
-                      <td className="tnum whitespace-nowrap"><div className="text-ink">{formatDate(e.timestamp)}</div><div className="text-[12.5px] text-ink-3">{formatTime(e.timestamp, true)}</div></td>
+                      <td className="tnum whitespace-nowrap"><div className="text-ink">{formatDate(e.timestamp)}</div><span className="sub">{formatTime(e.timestamp, true)}</span></td>
                       <td><Chip family={familyFor(e.type)} style={e.type === "APPLICATION_REJECTED" ? "outline" : "subtle"}>{e.type}</Chip></td>
-                      <td><div className="text-ink">{e.actorName}</div><div className="text-[12.5px] text-ink-3">{e.actorRole === "SYSTEM" ? "System" : ROLE_LABELS[e.actorRole]}</div></td>
-                      <td className="tnum text-ink-2">{e.applicationRef ?? "—"}</td>
-                      <td className="text-ink-2">{e.resource ?? "—"}</td>
-                      <td className="tnum text-[12.5px] text-ink-3 font-mono">#{e.seq} · {e.hash.slice(0, 12)}</td>
+                      <td><div className="text-ink whitespace-nowrap">{e.actorName}</div><span className="sub">{e.actorRole === "SYSTEM" ? "System" : ROLE_LABELS[e.actorRole]}</span></td>
+                      <td className="tnum text-ink-2 whitespace-nowrap">{e.applicationRef ?? "—"}</td>
+                      <td className="text-ink-2 whitespace-nowrap">{e.resource ?? "—"}</td>
+                      <td className="tnum text-[12.5px] text-ink-3 font-mono whitespace-nowrap">#{e.seq} · {e.hash.slice(0, 12)}</td>
                       <td><Chip family="success">Verified</Chip></td>
                       <td><ChevronDown size={15} className={`text-ink-3 transition-transform ${open ? "rotate-180" : ""}`} /></td>
                     </tr>
