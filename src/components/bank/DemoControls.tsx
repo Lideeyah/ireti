@@ -25,16 +25,16 @@ export function DemoControls({ facilities }: { facilities: { id: string; referen
       {msg && <div className="mb-5"><Banner tone={msg.tone}>{msg.text}</Banner></div>}
       <div className="space-y-5">
         <div>
-          <Label>Repayment simulation</Label>
-          <div className="flex flex-col sm:flex-row gap-2">
-            <Select value={facility} onChange={(e) => setFacility(e.target.value)} className="sm:w-[320px]">{facilities.length === 0 && <option value="">No disbursed facilities</option>}{facilities.map((f) => <option key={f.id} value={f.id}>{f.reference} · {f.business}</option>)}</Select>
+          <Label hint="Processes the next instalment of the selected facility">Repayment simulation</Label>
+          <Select value={facility} onChange={(e) => setFacility(e.target.value)}>{facilities.length === 0 && <option value="">No disbursed facilities</option>}{facilities.map((f) => <option key={f.id} value={f.id}>{f.reference} · {f.business}</option>)}</Select>
+          <div className="flex flex-wrap gap-2 mt-3">
             <Button disabled={!facility} loading={busy === "ok"} onClick={() => run("ok", () => simulateRepaymentAction(facility, "success"), "Repayment processed.")}>Simulate repayment</Button>
             <Button variant="destructive" disabled={!facility} loading={busy === "fail"} onClick={() => run("fail", () => simulateRepaymentAction(facility, "failure"), "Repayment failed; a risk case was opened.")}>Simulate repayment failure</Button>
           </div>
         </div>
         <Divider />
         <div>
-          <Label>Environment</Label>
+          <Label hint="Demo environment only">Environment</Label>
           <p className="text-[13px] text-ink-3 mb-3">Wipes all data, reseeds the demo bank, staff and queue, and signs everyone out. The demo SME account starts un-onboarded.</p>
           <Button variant="destructive" loading={busy === "reset"} onClick={() => run("reset", async () => { const r = await resetDemoAction(); if (r.ok) router.push("/sign-in"); return r; }, "Demo reset.")}>Reset demo environment</Button>
           <FieldError />

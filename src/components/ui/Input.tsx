@@ -5,12 +5,15 @@ import type { InputHTMLAttributes, SelectHTMLAttributes, TextareaHTMLAttributes 
 const base =
   "w-full h-8 px-2.5 rounded-[6px] border border-line-strong bg-surface text-[13.5px] text-ink placeholder:text-ink-4 outline-none transition-colors focus:border-[var(--border-focus)] focus:ring-2 focus:ring-[var(--focus-ring)]/25 disabled:bg-sunken disabled:text-ink-4";
 
+/** Field label. The hint sits on its own line so rows of fields keep their inputs aligned. */
 export function Label({ children, hint, required }: { children: React.ReactNode; hint?: string; required?: boolean }) {
   return (
-    <label className="block text-[12.5px] font-medium text-ink-2 mb-1">
-      {children}
-      {required && <span className="text-danger ml-0.5">*</span>}
-      {hint && <span className="font-normal text-ink-3 ml-1.5">{hint}</span>}
+    <label className="block mb-1.5">
+      <span className="block text-[13px] font-medium text-ink-2 leading-snug whitespace-nowrap truncate">
+        {children}
+        {required && <span className="text-danger ml-0.5">*</span>}
+      </span>
+      {hint && <span className="block text-[12px] text-ink-3 leading-snug mt-0.5 whitespace-nowrap truncate">{hint}</span>}
     </label>
   );
 }

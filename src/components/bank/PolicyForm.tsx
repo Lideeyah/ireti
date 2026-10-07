@@ -29,12 +29,12 @@ export function PolicyForm({ policy, readOnly }: { policy: BankPolicy; readOnly:
         <Card>
           <CardHeader eyebrow="Lending limits" title="Amounts and score" />
           <div className="grid grid-cols-2 gap-x-6 gap-y-5">
-            <div><Label hint="₦">Maximum loan amount</Label><Input className="tnum" disabled={readOnly} value={draft.maxLoanAmount.toLocaleString("en-NG")} onChange={(e) => setDraft({ ...draft, maxLoanAmount: num(e.target.value) })} /></div>
-            <div><Label hint="₦">Minimum loan amount</Label><Input className="tnum" disabled={readOnly} value={draft.minLoanAmount.toLocaleString("en-NG")} onChange={(e) => setDraft({ ...draft, minLoanAmount: num(e.target.value) })} /></div>
-            <div><Label hint="0–100">Minimum assessment score</Label><Input className="tnum" type="number" disabled={readOnly} value={draft.minAssessmentScore} onChange={(e) => setDraft({ ...draft, minAssessmentScore: num(e.target.value) })} /></div>
-            <div><Label hint="share of annualised net flow">Capacity ratio</Label><Input className="tnum" type="number" step="0.05" disabled={readOnly} value={draft.eligibility.capacityRatio} onChange={(e) => setDraft({ ...draft, eligibility: { ...draft.eligibility, capacityRatio: Number(e.target.value) } })} /></div>
-            <div><Label hint="share of eligibility">Recommended amount share</Label><Input className="tnum" type="number" step="0.05" disabled={readOnly} value={draft.eligibility.recommendedShare} onChange={(e) => setDraft({ ...draft, eligibility: { ...draft.eligibility, recommendedShare: Number(e.target.value) } })} /></div>
-            <div><Label hint="debt service / net flow">Maximum debt-service ratio</Label><Input className="tnum" type="number" step="0.05" disabled={readOnly} value={draft.eligibility.maxDebtServiceRatio} onChange={(e) => setDraft({ ...draft, eligibility: { ...draft.eligibility, maxDebtServiceRatio: Number(e.target.value) } })} /></div>
+            <div><Label hint="Naira">Maximum loan amount</Label><Input className="tnum" disabled={readOnly} value={draft.maxLoanAmount.toLocaleString("en-NG")} onChange={(e) => setDraft({ ...draft, maxLoanAmount: num(e.target.value) })} /></div>
+            <div><Label hint="Naira">Minimum loan amount</Label><Input className="tnum" disabled={readOnly} value={draft.minLoanAmount.toLocaleString("en-NG")} onChange={(e) => setDraft({ ...draft, minLoanAmount: num(e.target.value) })} /></div>
+            <div><Label hint="0 to 100">Minimum assessment score</Label><Input className="tnum" type="number" disabled={readOnly} value={draft.minAssessmentScore} onChange={(e) => setDraft({ ...draft, minAssessmentScore: num(e.target.value) })} /></div>
+            <div><Label hint="Share of annualised net flow">Capacity ratio</Label><Input className="tnum" type="number" step="0.05" disabled={readOnly} value={draft.eligibility.capacityRatio} onChange={(e) => setDraft({ ...draft, eligibility: { ...draft.eligibility, capacityRatio: Number(e.target.value) } })} /></div>
+            <div><Label hint="Share of eligibility">Recommended amount share</Label><Input className="tnum" type="number" step="0.05" disabled={readOnly} value={draft.eligibility.recommendedShare} onChange={(e) => setDraft({ ...draft, eligibility: { ...draft.eligibility, recommendedShare: Number(e.target.value) } })} /></div>
+            <div><Label hint="Debt service ÷ net flow">Maximum debt-service ratio</Label><Input className="tnum" type="number" step="0.05" disabled={readOnly} value={draft.eligibility.maxDebtServiceRatio} onChange={(e) => setDraft({ ...draft, eligibility: { ...draft.eligibility, maxDebtServiceRatio: Number(e.target.value) } })} /></div>
           </div>
         </Card>
         <Card>
@@ -44,11 +44,11 @@ export function PolicyForm({ policy, readOnly }: { policy: BankPolicy; readOnly:
             <div><Label hint="% of principal">Processing fee</Label><Input className="tnum" type="number" step="0.1" disabled={readOnly} value={+(draft.processingFeeRate * 100).toFixed(2)} onChange={(e) => setDraft({ ...draft, processingFeeRate: Number(e.target.value) / 100 })} /></div>
           </div>
           <div className="mt-5">
-            <Label>Allowed tenors</Label>
+            <Label hint="Months">Allowed tenors</Label>
             <div className="flex flex-wrap gap-2">{[3, 6, 9, 12, 18, 24].map((t) => { const on = draft.allowedTenors.includes(t); return <button key={t} disabled={readOnly} onClick={() => setDraft({ ...draft, allowedTenors: on ? draft.allowedTenors.filter((x) => x !== t) : [...draft.allowedTenors, t].sort((a, b) => a - b) })} className={`h-8 px-3.5 rounded-[6px] border text-[13px] tnum ${on ? "border-primary bg-selected text-info font-medium" : "border-line-strong hover:bg-hover"}`}>{t} months</button>; })}</div>
           </div>
           <Divider />
-          <Label>Required documents</Label>
+          <Label hint="One per line">Required documents</Label>
           <Textarea disabled={readOnly} value={draft.requiredDocuments.join("\n")} onChange={(e) => setDraft({ ...draft, requiredDocuments: e.target.value.split("\n").map((s) => s.trim()).filter(Boolean) })} placeholder="One per line" />
         </Card>
         <Card>
@@ -56,19 +56,19 @@ export function PolicyForm({ policy, readOnly }: { policy: BankPolicy; readOnly:
           <div className="space-y-5">
             <Checkbox checked={draft.repaymentRules.alignToInflowWindow} onChange={(v) => !readOnly && setDraft({ ...draft, repaymentRules: { ...draft.repaymentRules, alignToInflowWindow: v } })} label="Align repayment date to strongest observed inflow window" description="When off, repayments default to the disbursement anniversary date." />
             <div className="grid grid-cols-3 gap-x-6 gap-y-5">
-              <div><Label hint="days">Minimum days before first repayment</Label><Input className="tnum" type="number" disabled={readOnly} value={draft.repaymentRules.minDaysBeforeFirstRepayment} onChange={(e) => setDraft({ ...draft, repaymentRules: { ...draft.repaymentRules, minDaysBeforeFirstRepayment: num(e.target.value) } })} /></div>
-              <div><Label>Maximum debit retries</Label><Input className="tnum" type="number" disabled={readOnly} value={draft.repaymentRules.maxDebitRetries} onChange={(e) => setDraft({ ...draft, repaymentRules: { ...draft.repaymentRules, maxDebitRetries: num(e.target.value) } })} /></div>
-              <div><Label hint="days">Grace period</Label><Input className="tnum" type="number" disabled={readOnly} value={draft.repaymentRules.graceDays} onChange={(e) => setDraft({ ...draft, repaymentRules: { ...draft.repaymentRules, graceDays: num(e.target.value) } })} /></div>
+              <div><Label hint="Days after disbursement">First repayment delay</Label><Input className="tnum" type="number" disabled={readOnly} value={draft.repaymentRules.minDaysBeforeFirstRepayment} onChange={(e) => setDraft({ ...draft, repaymentRules: { ...draft.repaymentRules, minDaysBeforeFirstRepayment: num(e.target.value) } })} /></div>
+              <div><Label hint="Attempts per instalment">Maximum debit retries</Label><Input className="tnum" type="number" disabled={readOnly} value={draft.repaymentRules.maxDebitRetries} onChange={(e) => setDraft({ ...draft, repaymentRules: { ...draft.repaymentRules, maxDebitRetries: num(e.target.value) } })} /></div>
+              <div><Label hint="Days after the window">Grace period</Label><Input className="tnum" type="number" disabled={readOnly} value={draft.repaymentRules.graceDays} onChange={(e) => setDraft({ ...draft, repaymentRules: { ...draft.repaymentRules, graceDays: num(e.target.value) } })} /></div>
             </div>
           </div>
         </Card>
         <Card>
           <CardHeader eyebrow="Risk thresholds" title="Monitoring triggers" />
           <div className="grid grid-cols-2 gap-x-6 gap-y-5">
-            <div><Label hint="% drop → watch">Inflow drop (watch)</Label><Input className="tnum" type="number" disabled={readOnly} value={Math.round(draft.riskThresholds.inflowDropWatchPct * 100)} onChange={(e) => setDraft({ ...draft, riskThresholds: { ...draft.riskThresholds, inflowDropWatchPct: num(e.target.value) / 100 } })} /></div>
-            <div><Label hint="% drop → at risk">Inflow drop (at risk)</Label><Input className="tnum" type="number" disabled={readOnly} value={Math.round(draft.riskThresholds.inflowDropAtRiskPct * 100)} onChange={(e) => setDraft({ ...draft, riskThresholds: { ...draft.riskThresholds, inflowDropAtRiskPct: num(e.target.value) / 100 } })} /></div>
-            <div><Label>Failed debits → at risk</Label><Input className="tnum" type="number" disabled={readOnly} value={draft.riskThresholds.failedDebitsAtRisk} onChange={(e) => setDraft({ ...draft, riskThresholds: { ...draft.riskThresholds, failedDebitsAtRisk: num(e.target.value) } })} /></div>
-            <div><Label>Missed repayments → at risk</Label><Input className="tnum" type="number" disabled={readOnly} value={draft.riskThresholds.missedRepaymentsAtRisk} onChange={(e) => setDraft({ ...draft, riskThresholds: { ...draft.riskThresholds, missedRepaymentsAtRisk: num(e.target.value) } })} /></div>
+            <div><Label hint="% below baseline">Inflow drop → watch</Label><Input className="tnum" type="number" disabled={readOnly} value={Math.round(draft.riskThresholds.inflowDropWatchPct * 100)} onChange={(e) => setDraft({ ...draft, riskThresholds: { ...draft.riskThresholds, inflowDropWatchPct: num(e.target.value) / 100 } })} /></div>
+            <div><Label hint="% below baseline">Inflow drop → at risk</Label><Input className="tnum" type="number" disabled={readOnly} value={Math.round(draft.riskThresholds.inflowDropAtRiskPct * 100)} onChange={(e) => setDraft({ ...draft, riskThresholds: { ...draft.riskThresholds, inflowDropAtRiskPct: num(e.target.value) / 100 } })} /></div>
+            <div><Label hint="Count per facility">Failed debits → at risk</Label><Input className="tnum" type="number" disabled={readOnly} value={draft.riskThresholds.failedDebitsAtRisk} onChange={(e) => setDraft({ ...draft, riskThresholds: { ...draft.riskThresholds, failedDebitsAtRisk: num(e.target.value) } })} /></div>
+            <div><Label hint="Count per facility">Missed repayments → at risk</Label><Input className="tnum" type="number" disabled={readOnly} value={draft.riskThresholds.missedRepaymentsAtRisk} onChange={(e) => setDraft({ ...draft, riskThresholds: { ...draft.riskThresholds, missedRepaymentsAtRisk: num(e.target.value) } })} /></div>
           </div>
         </Card>
       </div>
