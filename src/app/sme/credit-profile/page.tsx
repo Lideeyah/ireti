@@ -40,10 +40,10 @@ export default async function CreditProfilePage() {
             </div>
             <Divider />
             <div className="grid grid-cols-2 gap-x-8 gap-y-6">
-              <Stat label="Eligible lending amount" size="lg" value={formatNaira(assessment.eligibleAmount)} />
+              <Stat label="Eligible amount" size="lg" value={formatNaira(assessment.eligibleAmount)} />
               <Stat label="Recommended amount" size="lg" value={formatNaira(assessment.recommendedAmount)} />
               <Stat label="Recommended tenor" value={`${assessment.recommendedTenorMonths} months`} />
-              <Stat label="Recommended repayment window" value={formatWindow(assessment.repaymentWindow)} sub={`Recommended date: ${ordinal(assessment.recommendedRepaymentDay)}`} />
+              <Stat label="Repayment window" value={formatWindow(assessment.repaymentWindow)} sub={`Recommended date: ${ordinal(assessment.recommendedRepaymentDay)}`} />
             </div>
             <Divider />
             <p className="text-[13.5px] text-ink-2 leading-relaxed">The recommended repayment window aligns with your strongest recurring inflow period. Eligibility is derived from annualised net cash flow, the configured capacity ratio of {formatPercent(policy.eligibility.capacityRatio)}, the assessment score and existing obligations, capped at the bank&apos;s maximum of {formatNaira(policy.maxLoanAmount)}.</p>

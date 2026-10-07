@@ -64,10 +64,10 @@ export default async function BankApplicationReview({ params, searchParams }: { 
       {app.disbursement && (
         <Card className="mb-6">
           <CardHeader eyebrow="Disbursement" title={app.disbursement.status === "confirmed" ? "Disbursement confirmed" : app.disbursement.status === "failed" ? "Disbursement failed" : app.disbursement.status === "processing" ? "Initiating disbursement" : "Preparing disbursement"} action={<DemoTag>Demo disbursement</DemoTag>} />
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-x-6 gap-y-5">
             <Field label="Amount"><span className="tnum font-medium">{formatNaira(app.amount)}</span></Field>
             <Field label="Destination account"><span className="tnum">{app.disbursement.institutionName} {app.disbursement.destinationMasked}</span></Field>
-            <Field label="Approved">{app.decision ? `${formatDateTime(app.decision.at)} · ${app.decision.byName}` : "—"}</Field>
+            <Field label="Approved">{app.decision ? <><span className="tnum">{formatDateTime(app.decision.at)}</span><span className="block text-[12.5px] text-ink-3">{app.decision.byName}</span></> : "—"}</Field>
             <Field label="Attempts"><span className="tnum">{app.disbursement.attempts}</span></Field>
             <Field label="Status">{app.disbursement.status === "confirmed" ? <Chip family="success" style="solid">Confirmed</Chip> : app.disbursement.status === "failed" ? <Chip family="danger">Failed</Chip> : app.disbursement.status === "processing" ? <Chip family="info" dot>Processing</Chip> : <Chip family="neutral">Pending</Chip>}</Field>
           </div>
@@ -127,9 +127,9 @@ export default async function BankApplicationReview({ params, searchParams }: { 
             <CashFlowChart monthly={profile.monthly} />
             <Divider />
             <StatRow columns={4}>
-              <Stat label="Avg monthly inflow" value={formatNairaCompact(profile.avgMonthlyInflow)} sub={<RatingChip rating={profile.revenueConsistency} />} />
-              <Stat label="Avg monthly outflow" value={formatNairaCompact(profile.avgMonthlyOutflow)} sub={`Expense ratio ${Math.round(profile.expenseRatio * 100)}%`} />
-              <Stat label="Avg net monthly flow" value={formatNairaCompact(profile.avgNetMonthlyFlow)} sub={`${profile.positiveNetMonths} of ${profile.coverageMonths} months positive`} />
+              <Stat label="Avg inflow" value={formatNairaCompact(profile.avgMonthlyInflow)} sub={<RatingChip rating={profile.revenueConsistency} />} />
+              <Stat label="Avg outflow" value={formatNairaCompact(profile.avgMonthlyOutflow)} sub={`Expense ratio ${Math.round(profile.expenseRatio * 100)}%`} />
+              <Stat label="Avg net flow" value={formatNairaCompact(profile.avgNetMonthlyFlow)} sub={`${profile.positiveNetMonths} of ${profile.coverageMonths} months positive`} />
               <Stat label="Recent trend" value={<span className={profile.recentInflowChangePct >= 0 ? "text-[var(--delta-positive)]" : "text-[var(--delta-negative)]"}>{profile.recentInflowChangePct >= 0 ? "+" : "−"}{Math.abs(Math.round(profile.recentInflowChangePct * 100))}%</span>} sub="Last 3 months vs prior 9" />
             </StatRow>
             <Divider />

@@ -39,7 +39,7 @@ export function Divider({ className }: { className?: string }) {
 export function Field({ label, children, className }: { label: string; children: React.ReactNode; className?: string }) {
   return (
     <div className={clsx("min-w-0", className)}>
-      <div className="text-[12.5px] text-ink-3 mb-1">{label}</div>
+      <div className="text-[12.5px] text-ink-3 mb-1 whitespace-nowrap truncate">{label}</div>
       <div className="text-[14px] text-ink leading-snug">{children}</div>
     </div>
   );
@@ -48,15 +48,18 @@ export function Field({ label, children, className }: { label: string; children:
 export function Stat({ label, value, sub, size = "md", className }: { label: string; value: React.ReactNode; sub?: React.ReactNode; size?: "md" | "lg" | "xl"; className?: string }) {
   return (
     <div className={clsx("min-w-0", className)}>
-      <div className="eyebrow">{label}</div>
-      <div className={clsx("tnum text-ink font-semibold leading-none mt-2", size === "xl" ? "text-[32px]" : size === "lg" ? "text-[24px]" : "text-[18px]")}>{value}</div>
-      {sub && <div className="text-[13px] text-ink-2 mt-2 flex items-center gap-2">{sub}</div>}
+      <div className="eyebrow whitespace-nowrap truncate">{label}</div>
+      <div className={clsx("tnum text-ink font-semibold leading-none mt-2 whitespace-nowrap", size === "xl" ? "text-[32px]" : size === "lg" ? "text-[24px]" : "text-[18px]")}>{value}</div>
+      {sub && <div className="text-[13px] text-ink-2 mt-2 flex items-center gap-2 min-h-[22px]">{sub}</div>}
     </div>
   );
 }
 
 /** Evenly divided row of stats inside a card. */
-export function StatRow({ children, columns = 4 }: { children: React.ReactNode; columns?: 3 | 4 | 5 }) {
+export function StatRow({ children, columns = 4 }: { children: React.ReactNode; columns?: 2 | 3 | 4 | 5 }) {
+  if (columns === 2) {
+    return <div className="grid grid-cols-2 gap-x-6 gap-y-8 items-start [&>*]:min-w-0 [&>*:nth-child(even)]:border-l [&>*:nth-child(even)]:border-line-subtle [&>*:nth-child(even)]:pl-6">{children}</div>;
+  }
   const cols = columns === 5 ? "xl:grid-cols-5" : columns === 3 ? "lg:grid-cols-3" : "lg:grid-cols-4";
-  return <div className={clsx("grid grid-cols-2 md:grid-cols-3 gap-x-8 gap-y-6", cols, "[&>*]:lg:border-l [&>*]:lg:border-line-subtle [&>*:first-child]:lg:border-l-0 [&>*]:lg:pl-8 [&>*:first-child]:lg:pl-0")}>{children}</div>;
+  return <div className={clsx("grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-6 items-start", cols, "[&>*]:lg:border-l [&>*]:lg:border-line-subtle [&>*:first-child]:lg:border-l-0 [&>*]:lg:pl-6 [&>*:first-child]:lg:pl-0 [&>*]:min-w-0")}>{children}</div>;
 }

@@ -70,8 +70,8 @@ export default async function SmeHome() {
           {plan && (
             <Card>
               <CardHeader eyebrow="Repayment" title="Active facility" action={<Link href="/sme/repayments"><Button size="sm">View repayments</Button></Link>} />
-              <StatRow columns={4}>
-                <Stat label="Outstanding balance" size="lg" value={formatNaira(plan.outstanding)} />
+              <StatRow columns={2}>
+                <Stat label="Outstanding balance" size="lg" value={formatNaira(plan.outstanding)} sub={`of ${formatNaira(plan.totalRepayable)} total`} />
                 <Stat label="Next repayment" size="lg" value={nextRepayment ? formatNaira(nextRepayment.amount) : "—"} sub={nextRepayment && <RepaymentStatusChip status={nextRepayment.status} />} />
                 <Stat label="Expected date" size="lg" value={nextRepayment ? formatDate(nextRepayment.dueDate) : "—"} />
                 <Stat label="Repayment window" size="lg" value={nextRepayment ? `${new Date(nextRepayment.windowStart).getDate()}–${formatDate(nextRepayment.windowEnd, { day: "numeric", month: "long" })}` : "—"} />
