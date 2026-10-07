@@ -9,12 +9,20 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "calibrate": "tsx scripts/calibrate.ts",
-    "seed:report": "tsx scripts/seed-report.ts"
+    "seed:report": "tsx scripts/seed-report.ts",
+    "db:push": "prisma db push",
+    "db:seed": "tsx prisma/seed.ts",
+    "db:reset": "prisma db push --force-reset && tsx prisma/seed.ts",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
+    "@prisma/client": "^6.19.3",
+    "@types/bcryptjs": "^2.4.6",
+    "bcryptjs": "^2.4.3",
     "clsx": "^2.1.1",
     "lucide-react": "^0.468.0",
     "next": "^15.1.0",
+    "prisma": "^6.19.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "recharts": "^2.15.0",

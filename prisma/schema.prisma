@@ -1,0 +1,331 @@
+// Ìrètí relational schema.
+// SQLite for zero-setup local operation; switch `provider` to "postgresql" for deployment.
+// JSON-shaped fields (factors, monthly series, metadata) are stored as JSON strings and
+// parsed in the server data layer so the schema stays portable across providers.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Organisation {
+  id        String   @id @default(cuid())
+  name      String
+  type      String   // "sme" | "bank"
+  createdAt DateTime @default(now())
+  users     User[]
+  businesses Business[]
+}
+
+model User {
+  id             String   @id @default(cuid())
+  email          String   @unique
+  passwordHash   String
+  name           String
+  role           String   // SME_USER | BANK_OFFICER | BANK_RISK | BANK_OPERATIONS | BANK_COMPLIANCE | ADMIN
+  title          String?
+  organisationId String
+  organisation   Organisation @relation(fields: [organisationId], references: [id])
+  createdAt      DateTime @default(now())
+  sessions       Session[]
+}
+
+model Session {
+  id        String   @id
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model Business {
+  id                     String   @id @default(cuid())
+  organisationId         String   @unique
+  organisation           Organisation @relation(fields: [organisationId], references: [id])
+  name                   String
+  cacNumber              String
+  cacStatus              String
+  businessType           String
+  industry               String
+  location               String
+  yearsOperating         Int
+  declaredMonthlyRevenue Int
+  identityVerified       Boolean  @default(false)
+  identityVerifiedAt     DateTime?
+  createdAt              DateTime @default(now())
+  connections   BankConnection[]
+  accounts      BankAccount[]
+  transactions  Transaction[]
+  profiles      FinancialProfile[]
+  assessments   CreditAssessment[]
+  applications  LoanApplication[]
+  consents      Consent[]
+  documents     Document[]
+  riskEvents    RiskEvent[]
+  cases         Case[]
+  plans         RepaymentPlan[]
+}
+
+model BankConnection {
+  id              String   @id @default(cuid())
+  businessId      String
+  business        Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  institutionId   String
+  institutionName String
+  status          String   // not_connected | connecting | connected | failed
+  provider        String   @default("demo-open-banking")
+  connectedAt     DateTime?
+  lastSyncedAt    DateTime?
+  consentId       String?
+  failureReason   String?
+  accounts        BankAccount[]
+  @@unique([businessId, institutionId])
+}
+
+model BankAccount {
+  id                  String   @id @default(cuid())
+  connectionId        String
+  connection          BankConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  businessId          String
+  business            Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  institutionId       String
+  institutionName     String
+  accountNumberMasked String
+  accountType         String
+  currency            String   @default("NGN")
+  balance             Int
+  transactions        Transaction[]
+}
+
+model Transaction {
+  id           String   @id @default(cuid())
+  accountId    String
+  account      BankAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  businessId   String
+  business     Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  date         DateTime
+  amount       Int
+  category     String
+  counterparty String
+  narration    String
+  @@index([businessId, date])
+}
+
+model FinancialProfile {
+  id          String   @id @default(cuid())
+  businessId  String
+  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  generatedAt DateTime
+  data        String   // JSON: full FinancialProfile shape
+  assessments CreditAssessment[]
+}
+
+model CreditAssessment {
+  id            String   @id @default(cuid())
+  businessId    String
+  business      Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  profileId     String
+  profile       FinancialProfile @relation(fields: [profileId], references: [id])
+  generatedAt   DateTime
+  modelVersion  String
+  policyVersion String
+  score         Int
+  band          String
+  eligibleAmount Int
+  recommendedAmount Int
+  data          String   // JSON: factors, observations, recommendation, policy checks
+  applications  LoanApplication[]
+}
+
+model LoanOffer {
+  id                 String   @id @default(cuid())
+  businessId         String
+  principal          Int
+  tenorMonths        Int
+  annualInterestRate Float
+  interestMethod     String
+  interestAmount     Int
+  feeRate            Float
+  feeAmount          Int
+  totalRepayable     Int
+  instalmentAmount   Int
+  windowStart        Int
+  windowEnd          Int
+  recommendedRepaymentDay Int
+  policyVersion      String
+  createdAt          DateTime @default(now())
+  application        LoanApplication?
+  plans              RepaymentPlan[]
+}
+
+model LoanApplication {
+  id              String   @id @default(cuid())
+  reference       String   @unique
+  businessId      String
+  business        Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  assessmentId    String
+  assessment      CreditAssessment @relation(fields: [assessmentId], references: [id])
+  offerId         String   @unique
+  offer           LoanOffer @relation(fields: [offerId], references: [id])
+  consentId       String
+  amount          Int
+  purpose         String
+  tenorMonths     Int
+  status          String
+  submittedAt     DateTime
+  updatedAt       DateTime @updatedAt
+  reviewerId      String?
+  reviewerName    String?
+  firstReviewedAt DateTime?
+  decision        String?  // JSON
+  informationRequest String? // JSON
+  disbursement    String?  // JSON
+  plan            RepaymentPlan?
+  documents       Document[]
+  riskEvents      RiskEvent[]
+  cases           Case[]
+}
+
+model RepaymentPlan {
+  id               String   @id @default(cuid())
+  applicationId    String   @unique
+  application      LoanApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  businessId       String
+  business         Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  offerId          String
+  offer            LoanOffer @relation(fields: [offerId], references: [id])
+  mandateReference String
+  principal        Int
+  totalRepayable   Int
+  outstanding      Int
+  paidToDate       Int
+  health           String
+  startedAt        DateTime
+  repayments       Repayment[]
+}
+
+model Repayment {
+  id               String   @id @default(cuid())
+  planId           String
+  plan             RepaymentPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  businessId       String
+  sequence         Int
+  dueDate          DateTime
+  windowStart      DateTime
+  windowEnd        DateTime
+  amount           Int
+  principalPortion Int
+  interestPortion  Int
+  status           String
+  attempts         Int      @default(0)
+  paidAt           DateTime?
+  failureReason    String?
+  reference        String?
+}
+
+model RiskEvent {
+  id            String   @id @default(cuid())
+  businessId    String
+  business      Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  applicationId String?
+  application   LoanApplication? @relation(fields: [applicationId], references: [id])
+  type          String
+  severity      String
+  description   String
+  createdAt     DateTime @default(now())
+  case          Case?
+}
+
+model Case {
+  id            String   @id @default(cuid())
+  reference     String   @unique
+  riskEventId   String   @unique
+  riskEvent     RiskEvent @relation(fields: [riskEventId], references: [id])
+  businessId    String
+  business      Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  applicationId String?
+  application   LoanApplication? @relation(fields: [applicationId], references: [id])
+  severity      String
+  trigger       String
+  owner         String
+  assigneeName  String?
+  status        String
+  notes         String   @default("[]") // JSON
+  history       String   @default("[]") // JSON
+  createdAt     DateTime @default(now())
+  resolvedAt    DateTime?
+}
+
+model AuditEvent {
+  seq             Int      @id @default(autoincrement())
+  id              String   @unique @default(cuid())
+  timestamp       DateTime
+  type            String
+  actorId         String
+  actorName       String
+  actorRole       String
+  businessId      String?
+  applicationId   String?
+  applicationRef  String?
+  resource        String?
+  metadata        String   @default("{}") // JSON (non-sensitive only)
+  payloadHash     String
+  previousHash    String
+  hash            String
+  customerVisible Boolean  @default(false)
+  @@index([businessId])
+  @@index([applicationId])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  audience  String   // "sme" | "bank"
+  businessId String? // for sme audience
+  type      String
+  title     String
+  body      String
+  href      String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  @@index([audience, businessId])
+}
+
+model BankPolicy {
+  id            Int      @id @default(1)
+  version       String
+  data          String   // JSON: BankPolicy shape
+  updatedAt     DateTime
+  updatedByName String
+}
+
+model Document {
+  id            String   @id @default(cuid())
+  businessId    String
+  business      Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  applicationId String?
+  application   LoanApplication? @relation(fields: [applicationId], references: [id])
+  type          String
+  name          String
+  status        String
+  providedAt    DateTime?
+}
+
+model Consent {
+  id            String   @id @default(cuid())
+  businessId    String
+  business      Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  applicationId String?
+  scope         String   // JSON array
+  grantedAt     DateTime
+  grantedByName String
+  hash          String
+}
+
+model Counter {
+  name  String @id
+  value Int
+}
