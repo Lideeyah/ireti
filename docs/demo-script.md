@@ -1,10 +1,25 @@
 # Demo script — end to end
 
-Open `http://localhost:3100`. If the demo has been used before, open `/dev` and click **Reset demo** first.
+Open `http://localhost:3100`. If the demo has been used before, sign in as the administrator and use **Administration → Reset demo environment**, or run `npm run db:reset`.
+
+## Accounts
+
+All seeded accounts share the demo password `ireti-demo-2026` (demo environment only).
+
+| Account | Email | Role |
+|---|---|---|
+| Folake Adebayo (Adebayo Foods Ltd, not yet onboarded) | folake@adebayofoods.ng | SME |
+| Sarah Adeyemi | s.adeyemi@bank.example | Credit Officer |
+| Emeka Nwosu | e.nwosu@bank.example | Risk |
+| Halima Bello | h.bello@bank.example | Operations |
+| Tunde Okafor | t.okafor@bank.example | Compliance |
+| Ngozi Eze | n.eze@bank.example | Administrator |
+
+You can also create a brand-new business account at `/sign-up`.
 
 ## SME
 
-1. **Enter product** — click *Continue as SME*. The overview shows "Set up your business"; click *Start onboarding*.
+1. **Enter product** — click *Continue as SME* and either sign in as Folake Adebayo or create a new business account. New accounts land on onboarding.
 2. **Create business** — fill the form (or click *Use demo business details* for Adebayo Foods Ltd) and *Continue*. Validation blocks continuation until all required fields are valid.
 3. **Verify BVN** — enter any 11-digit number, click *Verify identity*. Observe the processing state, then **Identity verified**. Continue.
 4. **Connect three bank accounts** — select Sterling Bank, FirstBank and UBA, then click *Connect* on each. Each moves Not connected → Connecting → Connected and shows account ending, current balance and last synced. (Any institution can be connected; the three above carry the richest seeded data.)
@@ -22,19 +37,19 @@ Open `http://localhost:3100`. If the demo has been used before, open `/dev` and 
 
 ## Bank
 
-16. **Switch to Bank** — sidebar link. Persona is Sarah Adeyemi, Credit Officer.
+16. **Switch to Bank** — sign out from the user menu and sign in as Sarah Adeyemi (Credit Officer).
 17. **See new application** — Lending operations shows the queue with Adebayo Foods Ltd as *Submitted*. Open *Applications* to filter *New*.
 18. **Open Adebayo Foods Ltd** — status moves to *In review*; the access is written to the ledger and the SME is notified.
 19. **Review business information**, **consolidated accounts** (3 institutions, total observed balance), **12-month financial trends** (switch 12/6/3 months; recent quarter shaded), and the **credit assessment**.
 20. **Open assessment factors** — click each factor to reveal evidence.
 21. **Read decision-support recommendation** — "Approve within configured eligibility", confidence High, reasoning bullets. The officer decides.
 22. **Approve** — click *Approve*, review the confirmation (amount, tenor, total expected repayment, window), click *Confirm approval*. Observe *Submitting approval to banking system…* then **Approval confirmed** and the next state *Preparing disbursement*.
-23. **Initiate disbursement** — the disbursement panel requires Operations. Click *Switch to Halima* (inline), then *Initiate disbursement*.
-24. **Disbursement succeeds** — **Disbursement confirmed** with amount, destination •••• 4821, timestamp, reference and mandate. (To show the failure path instead, use `/dev` → *Simulate disbursement failure*, then *Retry* or *Escalate to operations*.)
+23. **Initiate disbursement** — the disbursement panel states that it requires Operations. Sign out and sign in as Halima Bello, reopen the application and click *Initiate disbursement*.
+24. **Disbursement succeeds** — **Disbursement confirmed** with amount, destination •••• 4821, timestamp, reference and mandate. (To show the failure path, click *Simulate failure* first, then *Retry disbursement* or *Escalate to operations*.)
 
 ## After approval
 
-25. **Return to SME** — overview shows the approved, disbursed facility.
+25. **Return to SME** — sign in as the business again; the overview shows the disbursed facility.
 26. **See disbursement** on the application timeline and banner.
 27. **See repayment schedule** — *Repayments*: outstanding ₦12.7m, next instalment ≈ ₦2.1m, expected date 23 Oct, window 22–24 Oct, six-instalment timeline.
 28. **See recommended repayment date** — Repayment profile: strongest inflow 22nd–24th, average inflow in window, recommended date 23rd, with the no-guarantee statement.
@@ -42,10 +57,10 @@ Open `http://localhost:3100`. If the demo has been used before, open `/dev` and 
 ## Monitoring
 
 29. **Bank opens Monitoring** — portfolio health counts and open cases (seeded: Ilorin Furniture Makers at risk after a failed repayment; Uyo Poultry Farms on watch for reduced inflows).
-30. **See repayment event** — in `/dev`, *Simulate repayment failure* for Adebayo Foods; return to Monitoring to see the new case and the facility at **At risk**. Open the case: assign, add a note, escalate or resolve. (Switch to Risk or Operations if prompted.)
+30. **See repayment event** — as Operations, on the application's repayment panel click *Simulate failed debit*; Monitoring shows the new case and the facility at **At risk**. Open the case: assign, add a note, escalate or resolve.
 31. **See risk state** — the SME's Repayments page shows **Repayment attention required** with Retry.
-32. **Open audit ledger** — switch persona to Compliance (Tunde Okafor). The ledger shows the full chain for `IR-2026-00482`: consent, profile generated, assessment created (score 82, model CA-2.4), submitted, review started, data access, approved, disbursement initiated and confirmed, mandate created, repayment failed, risk event created. Expand a row for metadata and hashes; chain integrity reads **Verified**.
+32. **Open audit ledger** — sign in as Compliance (Tunde Okafor). The ledger shows the full chain for `IR-2026-00482`: consent, profile generated, assessment created (score 82, model CA-2.4), submitted, review started, data access, approved, disbursement initiated and confirmed, mandate created, repayment failed, risk event created. Expand a row for metadata and hashes; chain integrity reads **Verified**.
 
 ## Shortcuts
 
-`/dev` → *Load sample application* performs steps 2–14 instantly through the same services, for demos that start at the bank.
+Administrators have **Administration → Demo controls** for resetting the environment and simulating repayments on any disbursed facility.

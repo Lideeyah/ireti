@@ -9,7 +9,7 @@ This document separates what exists, what is a demo implementation, and what rem
 - Separation of data, analysis, policy, decision support and human decision in code.
 - Configurable lending policy (`BankPolicy`) driving pricing, eligibility, tenors, documents, repayment rules and risk thresholds; versioned on change.
 - Reducing-balance pricing and amortisation schedule aligned to the recommended repayment day.
-- Role-based permission matrix enforced in the UI.
+- Accounts, sessions and role-based permissions enforced server-side in every action; UI gating mirrors it.
 - Append-only, hash-chained audit ledger with integrity verification and a customer-facing access view.
 - Notification centre for SME and bank audiences.
 - Risk cases with assignment, notes, escalation and resolution; facility health states.
@@ -25,10 +25,10 @@ This document separates what exists, what is a demo implementation, and what rem
 | Bank connection / transactions | Deterministic seeded generator | Open Banking aggregator or direct APIs with institution-side consent |
 | Disbursement | Simulated success/failure | Core banking / NIP integration with idempotency and async status |
 | Repayment | Simulated mandate and debits | NIBSS direct debit / collections engine |
-| Audit ledger | In-process SHA-256 chain, browser persisted | Permissioned ledger or WORM store; server-side recording |
+| Audit ledger | SHA-256 chain in the application database, written inside each transaction | Permissioned ledger or WORM store mirroring the same events |
 | Decision support | Deterministic rules | Governed model with versioning and fallback |
-| Authentication | Persona switcher | Bank SSO (OIDC/SAML) with server-side authorisation |
-| Persistence | Browser `localStorage` | Relational database behind an API |
+| Authentication | Email + hashed password, server sessions | Bank SSO (OIDC/SAML) for staff; MFA; password policy and recovery for SMEs |
+| Persistence | Prisma over SQLite (local) | Prisma over managed PostgreSQL with backups and migrations |
 | Notifications | In-app only | Email / SMS / push via bank messaging |
 
 ## Institution-specific work remaining

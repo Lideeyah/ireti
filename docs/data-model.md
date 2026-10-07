@@ -1,6 +1,8 @@
 # Data model
 
-All entities are defined in `src/lib/domain/types.ts` and stored relationally (by id) in the application store. Relationships are by reference; data is not duplicated across entities.
+All entities are defined in `src/lib/domain/types.ts` (domain shapes used by the UI) and `prisma/schema.prisma` (storage). Relationships are foreign keys; JSON-shaped fields (assessment factors, monthly series, event metadata, case notes) are stored as JSON strings and parsed in `src/server/serializers.ts` so the schema stays portable across SQLite and PostgreSQL.
+
+Additional storage entities: **User** (email, password hash, role), **Session**, **Counter** (application and case reference sequences).
 
 ## Entities
 
@@ -41,4 +43,4 @@ All entities are defined in `src/lib/domain/types.ts` and stored relationally (b
 - **Adebayo Foods Ltd** — the live demo SME. Starts un-onboarded. On connection, the generator produces ~450 transactions over 12 months across Sterling (•••• 4821), FirstBank (•••• 7730) and UBA (•••• 0915): distributor settlements on the 22nd–24th, weekly retail inflows, supplier payments, payroll on the 28th, quarterly rent, utilities, VAT, a ₦400k monthly repayment on an existing facility, a seasonal dip, one large contract inflow and one equipment purchase. Analysis lands at a score of 82/100, ₦18.5m eligibility and a 22nd–24th window.
 - **Twenty other businesses** populate the bank queue across every status, including two disbursed facilities on watch / at risk with open cases.
 
-Transactions are persisted only for Adebayo Foods; other businesses keep their derived FinancialProfile (charts use monthly aggregates).
+Transactions are stored for businesses that connect accounts through the product; seeded queue businesses keep their derived FinancialProfile (charts use monthly aggregates).

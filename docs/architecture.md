@@ -2,13 +2,12 @@
 
 ## Stack
 
-- **Next.js 15 (App Router) + React 19 + TypeScript** — application shell and routes.
+- **Next.js 15 (App Router) + React 19 + TypeScript** — server components render each page from the database; client "islands" handle interaction and call **server actions**.
+- **Prisma ORM** over **SQLite** locally (`prisma/schema.prisma`); the datasource provider switches to PostgreSQL for deployment without changing the application code.
+- **Authentication**: email + bcrypt-hashed password, server-side sessions in the `Session` table, `httpOnly` cookie, route protection in `src/middleware.ts` and role checks in every server action.
 - **Tailwind CSS v4** with design tokens as CSS variables (see `src/app/globals.css`).
-- **Zustand (persisted)** — application state and the use-case layer. State is persisted to `localStorage` so the demo survives refreshes and can be reset from `/dev`.
 - **Recharts** — financial charts.
 - **DM Sans** via `next/font` — single typeface, tabular numerals for money.
-
-No backend process is required for the demo; the architecture is layered so that each layer can be moved behind an API without changing the UI.
 
 ## Layering — data → analysis → policy → decision
 
@@ -38,6 +37,8 @@ src/
     shell/                AppShell, notification centre, persona switcher, permission gate
     charts/               Cash-flow line chart, inflow/outflow bars, repayment timeline
     bank/                 Application queue
+  server/                 Auth, use cases, read models, ledger (server-only)
+  middleware.ts           Session-cookie route protection
   lib/
     domain/               Entity types and labels
     analysis/             Financial analysis (measurement only)
@@ -48,7 +49,6 @@ src/
     services/             Adapters: identity (BVN), bank connection, disbursement, repayment, audit ledger
     seed/                 Institutions, deterministic transaction generator, demo organisation set
     auth/                 Roles and permission matrix
-    store/                Zustand store = repositories + use cases
     util/                 PRNG, SHA-256, ids, dates
 docs/                     This documentation
 scripts/calibrate.ts      Reproduces the seeded Adebayo Foods analysis from the command line
@@ -62,14 +62,25 @@ scripts/calibrate.ts      Reproduces the seeded Adebayo Foods analysis from the 
 | Open Banking | `BankConnectionService` (connect, accounts, balances, transactions, refresh, disconnect) | Deterministic seeded accounts/transactions | Open Banking Nigeria aggregator or direct bank APIs |
 | Disbursement | `DisbursementService` (initiate, status, retry) | Simulated NIP-style success/failure | Core banking / payment switch |
 | Repayment | `RepaymentService` (mandate, schedule, process, status, retry) | Simulated debit outcomes | NIBSS direct debit / collections engine |
-| Audit ledger | `AuditLedger.record / verify` | In-process SHA-256 hash chain | Permissioned ledger (e.g. Hyperledger Fabric) or WORM store |
+| Audit ledger | `recordAudit / verifyLedger` | SHA-256 hash chain in the `AuditEvent` table, verified on load | Permissioned ledger (e.g. Hyperledger Fabric) or WORM store |
 | Decision support | `DecisionSupportService.analyse` | Deterministic rules | Hosted model / vendor scorecard behind the same output shape |
 
-## State and source of truth
+## Request flow and source of truth
 
-The Zustand store (`src/lib/store/store.ts`) holds a relational `DB` of entities keyed by id and exposes use-case actions (`connectInstitution`, `runAnalysis`, `submitApplication`, `approveApplication`, `initiateDisbursement`, `processRepayment`, case actions, `updatePolicy`, …). Every UI interaction calls an action; every action mutates entities and appends audit events through the ledger service. Views are derived from the store, never from local component state, so the SME and bank experiences are always consistent.
+```
+Browser ──(server action)──▶ src/app/actions.ts ──▶ src/server/{sme,bank,risk,demo}.ts ──▶ Prisma ──▶ SQLite/Postgres
+   ▲                                                       │ recordAudit() + notify() in the same transaction
+   └──(revalidatePath → server components re-render)◀──────┘
+```
 
-Async operations (`connecting`, `processing`, `submitting`) are represented as explicit entity states, not just spinners, so the UI can never show a success the store does not hold.
+- `src/server/auth.ts` — sign-up, sign-in, sessions, `requireSmeUser` / `requireBankUser(permission)`.
+- `src/server/sme.ts` — business details, identity verification, account connection, analysis, application submission, information provision, access reports. Every function is scoped to the caller's organisation.
+- `src/server/bank.ts` — review access logging, information requests, approve/reject, disbursement, collections, policy updates.
+- `src/server/risk.ts` — risk events and cases.
+- `src/server/queries.ts` — read models for pages.
+- `src/server/core.ts` — audit ledger writes (hash chain computed inside the transaction), notifications, policy access, reference counters.
+
+Each use case runs inside a database transaction that also appends the audit event, so state and ledger can never disagree. Async adapter calls (`connecting`, `processing`) are persisted as explicit statuses before the adapter is called and resolved afterwards, so a page refresh mid-operation shows the truth.
 
 ## Design system
 

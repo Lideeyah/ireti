@@ -2,7 +2,13 @@
 
 ## Principle of least privilege
 
-Roles and permissions are explicit (`src/lib/auth/roles.ts`). UI actions are gated with `can(role, permission)`; the `Require` component shows who may perform an action and, in the demo, offers a persona switch.
+Roles and permissions are explicit (`src/lib/auth/roles.ts`). Every server action calls `requireBankUser(permission)` or `requireSmeUser()` before touching data, and SME use cases are scoped to the caller's organisation. The `Require` component mirrors the same matrix in the UI so staff see what they cannot do and why.
+
+## Authentication and sessions
+
+- Passwords are hashed with bcrypt (cost 10). Minimum length is enforced at sign-up.
+- Sessions are random 256-bit identifiers stored server-side with an expiry, carried in an `httpOnly`, `SameSite=Lax` cookie (`Secure` in production). Signing out deletes the session row.
+- `src/middleware.ts` redirects unauthenticated requests for `/sme` and `/bank` to sign-in; layouts then verify the organisation type and pages verify permissions.
 
 | Role | Can |
 |---|---|
@@ -41,4 +47,4 @@ Data → analysis → assessment → policy → decision support → human decis
 
 ## Production hardening (not in the demo)
 
-SSO/OIDC with role claims; server-side enforcement of the permission matrix; encryption at rest and in transit; secrets management; rate limiting; penetration testing; data retention and deletion policies aligned to NDPR; and independent review of the ledger implementation.
+SSO/OIDC with role claims for bank staff; MFA; account recovery; rate limiting and lockout on sign-in; encryption at rest and in transit; secrets management; CSRF hardening beyond the framework defaults; penetration testing; data retention and deletion policies aligned to NDPR; and independent review of the ledger implementation.
