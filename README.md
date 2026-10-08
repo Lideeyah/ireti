@@ -25,7 +25,7 @@ Next.js 15 (App Router, server components and server actions) · TypeScript · P
 
 | Command | Purpose |
 |---|---|
-| `npm run dev` | Development server on port 3100 |
+| `npm run dev` | Development server on port 4300 |
 | `npm run build` / `npm start` | Production build and server |
 | `npm run db:push` | Apply the Prisma schema to the database |
 | `npm run db:seed` | Seed demo data (idempotent for accounts and policy) |
