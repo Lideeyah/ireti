@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Pause, Play, SkipForward, X } from "lucide-react";
 import { DEMO_STEPS, PACE_MULTIPLIER, ROLE_LABELS, type DemoPace, type DemoRole } from "@/lib/demo/script";
 import { runStepAction, stopRunAction } from "@/app/demo/actions";
@@ -17,8 +17,12 @@ const ROLE_TONE: Record<DemoRole, string> = {
  * the screen that shows the result, holds it, then continues. Fixed to the viewport so
  * it stays in frame while the product changes underneath it.
  */
+/** Routes outside the product itself, where the control bar would be out of place. */
+const PUBLIC_ROUTES = ["/", "/sign-in", "/sign-up", "/demo"];
+
 export function DemoDirector({ initialStep, pace }: { initialStep: number; pace: DemoPace }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [index, setIndex] = useState(initialStep);
   const [paused, setPaused] = useState(false);
   const [error, setError] = useState<string>();
@@ -68,6 +72,13 @@ export function DemoDirector({ initialStep, pace }: { initialStep: number; pace:
   const progress = (shown / DEMO_STEPS.length) * 100;
   const chapterSteps = DEMO_STEPS.filter((s) => s.chapter === step.chapter);
   const chapterPosition = chapterSteps.indexOf(step) + 1;
+
+  // A finished run clears itself once the viewer leaves the product.
+  useEffect(() => {
+    if (finished && PUBLIC_ROUTES.includes(pathname)) void stopRunAction();
+  }, [finished, pathname]);
+
+  if (PUBLIC_ROUTES.includes(pathname)) return null;
 
   const exit = async () => {
     clear();
