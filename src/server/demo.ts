@@ -1,6 +1,6 @@
 import "server-only";
-import { execFileSync } from "child_process";
 import { prisma, isDemoMode } from "./db";
+import { resetDatabase } from "./seedDatabase";
 import { ServiceError, SYSTEM_ACTOR, recordAudit, notify, getPolicy } from "./core";
 import type { SessionUser } from "./auth";
 import { ADEBAYO_PREFILL, USERS } from "@/lib/seed/demoData";
@@ -19,12 +19,10 @@ export function assertDemo() {
 
 export const DEMO_ACCOUNTS = USERS.map((u) => ({ email: u.email, name: u.name, role: u.role, title: u.title }));
 
-/** Wipes and reseeds the database. */
+/** Clears every record and reinstalls the seeded bank, staff and portfolio. */
 export async function resetDemo() {
   assertDemo();
-  await prisma.$disconnect();
-  execFileSync("npx", ["prisma", "db", "push", "--force-reset", "--skip-generate"], { stdio: "ignore" });
-  execFileSync("npx", ["tsx", "prisma/seed.ts"], { stdio: "ignore" });
+  await resetDatabase();
 }
 
 /** Fast-forwards the demo SME to a submitted application through the real services. */
