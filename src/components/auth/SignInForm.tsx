@@ -34,6 +34,7 @@ export function SignInForm({ demoAccounts, demoPassword }: { demoAccounts: { ema
             ))}
           </ul>
           <p className="text-[12px] text-ink-3 mt-2">Select a colleague to fill the form. Shared password in this environment: <code className="font-mono text-ink">{demoPassword}</code></p>
+          <a href="/demo" className="text-[12.5px] text-link hover:underline mt-2.5 inline-block">Watch the guided run instead</a>
         </div>
       )}
     </form>

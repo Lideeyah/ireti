@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 import { getSessionUser } from "@/server/auth";
+import { isDemoMode } from "@/server/db";
 import { Wordmark } from "@/components/ui/Wordmark";
 import { Button } from "@/components/ui/Button";
 import { HeroVisual } from "@/components/marketing/HeroVisual";
@@ -15,6 +16,7 @@ const PILLARS = [
 export default async function Entry() {
   const user = await getSessionUser();
   if (user) redirect(user.organisationType === "bank" ? "/bank" : "/sme");
+  const guidedRun = isDemoMode();
   return (
     <main className="min-h-screen flex flex-col bg-surface">
       <header className="h-16 flex items-center justify-between px-8 lg:px-14 border-b border-line">
@@ -35,9 +37,14 @@ export default async function Entry() {
             <p className="text-[16px] text-ink-2 mt-6 max-w-[460px] rise" style={{ "--d": "140ms" } as React.CSSProperties}>
               One place for a bank to onboard an SME, assess it against policy, decide, disburse and monitor repayment.
             </p>
-            <div className="flex items-center gap-3 mt-8 rise" style={{ "--d": "220ms" } as React.CSSProperties}>
+            <div className="flex flex-wrap items-center gap-3 mt-8 rise" style={{ "--d": "220ms" } as React.CSSProperties}>
               <Link href="/sign-up"><Button variant="primary" className="h-10 px-5 text-[14px]">Continue as SME <ArrowRight size={15} /></Button></Link>
               <Link href="/sign-in"><Button className="h-10 px-5 text-[14px]">Continue as Bank</Button></Link>
+              {guidedRun && (
+                <Link href="/demo" className="text-[13.5px] text-link hover:underline inline-flex items-center gap-1.5 ml-1">
+                  Watch the guided run <ArrowRight size={13} />
+                </Link>
+              )}
             </div>
             <dl className="grid sm:grid-cols-3 gap-x-8 gap-y-5 mt-12 pt-8 border-t border-line max-w-[560px]">
               {PILLARS.map(([t, b], i) => (

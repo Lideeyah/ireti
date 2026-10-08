@@ -1,7 +1,7 @@
 import { clsx } from "clsx";
 
-export function Card({ children, className, padded = true }: { children: React.ReactNode; className?: string; padded?: boolean }) {
-  return <section className={clsx("surface", padded && "p-6", className)}>{children}</section>;
+export function Card({ children, className, padded = true, style }: { children: React.ReactNode; className?: string; padded?: boolean; style?: React.CSSProperties }) {
+  return <section style={style} className={clsx("surface", padded && "p-6", className)}>{children}</section>;
 }
 
 export function CardHeader({ title, eyebrow, action, description, className }: { title?: React.ReactNode; eyebrow?: string; action?: React.ReactNode; description?: React.ReactNode; className?: string }) {
