@@ -12,8 +12,9 @@
     "seed:report": "tsx scripts/seed-report.ts",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
-    "db:reset": "prisma db push --force-reset && tsx prisma/seed.ts",
-    "postinstall": "prisma generate"
+    "db:reset": "tsx scripts/reset.ts",
+    "postinstall": "prisma generate",
+    "predev": "node -e \"const fs=require('fs');if(fs.existsSync('.next/BUILD_ID')){fs.rmSync('.next',{recursive:true,force:true});console.log('Cleared production build output so the dev server starts clean.');}\""
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
