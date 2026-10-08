@@ -8,6 +8,7 @@ import { Chip } from "@/components/ui/Chip";
 import { ROLE_LABELS } from "@/lib/auth/roles";
 import type { Role } from "@/lib/domain/types";
 import { DemoControls } from "@/components/bank/DemoControls";
+import { INTEGRATIONS } from "@/lib/domain/integrations";
 
 export default async function SettingsPage() {
   await requireBankUser("bank:configure_policy");
@@ -15,6 +16,23 @@ export default async function SettingsPage() {
   return (
     <>
       <PageHeader title="Administration" />
+      <Card padded={false} className="mb-6">
+        <ListHeader title="Integrations" description={`${INTEGRATIONS.length} adapters`} />
+        <table className="data-table">
+          <thead><tr><th>Capability</th><th>Provider</th><th>Interface</th><th>Status</th></tr></thead>
+          <tbody>
+            {INTEGRATIONS.map((i) => (
+              <tr key={i.capability}>
+                <td><div className="text-ink whitespace-nowrap">{i.capability}</div><span className="sub">{i.detail}</span></td>
+                <td className="text-ink-2 whitespace-nowrap">{i.provider}</td>
+                <td className="text-ink-3 font-mono text-[12.5px] whitespace-nowrap">{i.interface}</td>
+                <td><Chip family={i.live ? "success" : "neutral"}>{i.live ? "Live" : "Sandbox"}</Chip></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Card>
+
       <div className="grid xl:grid-cols-2 gap-6">
         <Card padded={false}>
           <ListHeader title="Bank staff" description={`${staff.length} accounts`} />
@@ -26,7 +44,7 @@ export default async function SettingsPage() {
         {isDemoMode() ? (
           <DemoControls facilities={disbursed.map((a) => ({ id: a.id, reference: a.reference, business: a.business.name }))} />
         ) : (
-          <Card><CardHeader title="Demo controls disabled" /></Card>
+          <Card><CardHeader title="Operations tools unavailable" description="Manual collection and environment reset are disabled here." /></Card>
         )}
       </div>
     </>

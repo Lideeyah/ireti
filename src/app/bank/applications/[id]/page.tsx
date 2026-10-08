@@ -4,7 +4,6 @@ import { requireBankUser } from "@/server/auth";
 import { loadReviewBundle } from "@/server/queries";
 import { openApplicationForReview } from "@/server/bank";
 import { can } from "@/lib/auth/roles";
-import { isDemoMode } from "@/server/db";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { Card, CardHeader, Field, Stat, StatRow, Divider, ListHeader } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -16,7 +15,7 @@ import { CashFlowChart, InflowOutflowBars } from "@/components/charts/CashFlowCh
 import { RepaymentTimeline } from "@/components/charts/RepaymentTimeline";
 import { FactorRow } from "@/components/bank/FactorRow";
 import { DecisionActions, DisbursementActions, RepaymentActions } from "@/components/bank/ReviewActions";
-import { EVENT_LABELS } from "@/lib/domain/labels";
+import { EVENT_LABELS, CATEGORY_LABELS } from "@/lib/domain/labels";
 import { formatNaira, formatNairaCompact, formatDate, formatDateTime, formatRelative, formatWindow, formatTime } from "@/lib/format";
 
 export default async function BankApplicationReview({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ approved?: string }> }) {
@@ -27,13 +26,11 @@ export default async function BankApplicationReview({ params, searchParams }: { 
   try { await openApplicationForReview(user, id); } catch { /* not found; handled below */ }
   const data = await loadReviewBundle(id);
   if (!data) return <Card><EmptyState icon={FileText} title="Application not found" action={<Link href="/bank/applications"><Button size="sm">Back to queue</Button></Link>} /></Card>;
-  const { app, business, connections, accounts, assessment, profile, offer, plan, repayments, documents, cases, events, policy } = data;
+  const { app, business, connections, accounts, assessment, profile, offer, plan, repayments, documents, cases, events, transactions, policy } = data;
   const nextRepayment = repayments.find((r) => r.status === "scheduled" || r.status === "failed");
   const totalBalance = accounts.reduce((a, x) => a + x.balance, 0);
   const lastSynced = connections.map((c) => c.lastSyncedAt).filter(Boolean).sort().pop();
   const decidable = ["submitted", "under_review", "additional_information"].includes(app.status);
-  const demo = isDemoMode();
-  void demo;
 
   return (
     <>
@@ -83,7 +80,7 @@ export default async function BankApplicationReview({ params, searchParams }: { 
           {app.disbursement.status !== "confirmed" && (
             <div className="mt-5 pt-5 border-t border-line-subtle flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <p className="text-[13px] text-ink-3">Confirmed only on a successful banking response.</p>
-              <Require role={user.role} permission="bank:manage_disbursement" inline label="Disbursement requires"><DisbursementActions applicationId={app.id} status={app.disbursement.status} demoMode={demo} /></Require>
+              <Require role={user.role} permission="bank:manage_disbursement" inline label="Disbursement requires"><DisbursementActions applicationId={app.id} status={app.disbursement.status} /></Require>
             </div>
           )}
         </Card>
@@ -102,7 +99,7 @@ export default async function BankApplicationReview({ params, searchParams }: { 
           {nextRepayment && (
             <div className="mt-6 pt-5 border-t border-line-subtle flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <p className="text-[13px] text-ink-3">Collected by direct-debit mandate on the due date.</p>
-              <Require role={user.role} permission="bank:process_repayment" inline label="Collections require"><RepaymentActions repaymentId={nextRepayment.id} failed={nextRepayment.status === "failed"} demoMode={demo} /></Require>
+              <Require role={user.role} permission="bank:process_repayment" inline label="Collections require"><RepaymentActions repaymentId={nextRepayment.id} failed={nextRepayment.status === "failed" || nextRepayment.status === "overdue"} /></Require>
             </div>
           )}
           {cases.length > 0 && <div className="mt-5 flex flex-wrap gap-2">{cases.map((c) => <Link key={c.id} href={`/bank/monitoring/${c.id}`}><Chip family={c.status === "resolved" ? "neutral" : "warning"}>{c.reference} · {c.trigger} · {c.status}</Chip></Link>)}</div>}
@@ -137,8 +134,40 @@ export default async function BankApplicationReview({ params, searchParams }: { 
             <InflowOutflowBars monthly={profile.monthly} height={180} />
           </Card>
           <Card padded={false}>
+            <ListHeader title="Transactions" description="Most recent 60, consolidated" />
+            {transactions.length === 0 ? (
+              <EmptyState title="No transactions" body="This applicant has no retrieved transaction history." />
+            ) : (
+              <div className="max-h-[420px] overflow-y-auto">
+                <table className="data-table">
+                  <thead><tr><th>Date</th><th>Counterparty</th><th>Category</th><th className="num">Amount</th></tr></thead>
+                  <tbody>
+                    {transactions.map((t) => (
+                      <tr key={t.id}>
+                        <td className="tnum text-ink-2 whitespace-nowrap">{formatDate(t.date)}</td>
+                        <td><div className="text-ink whitespace-nowrap">{t.counterparty}</div><span className="sub">{t.narration}</span></td>
+                        <td className="text-ink-3 whitespace-nowrap">{CATEGORY_LABELS[t.category] ?? t.category}</td>
+                        <td className={`num tnum ${t.amount > 0 ? "text-[var(--delta-positive)]" : "text-ink"}`}>{t.amount > 0 ? "+" : "−"}{formatNaira(Math.abs(t.amount))}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Card>
+          <Card padded={false}>
             <ListHeader title="Credit assessment" description={`Model ${assessment.modelVersion} · policy ${assessment.policyVersion}`} action={<span className="tnum text-[22px] font-semibold text-ink">{assessment.score}<span className="text-ink-3 text-[13px] font-medium"> / 100</span></span>} />
             <ul className="divide-y divide-line-subtle">{assessment.factors.map((f) => <FactorRow key={f.key} factor={f} />)}</ul>
+            <div className="px-6 py-5 border-t border-line-subtle">
+              <div className="eyebrow mb-3">Eligibility</div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-5">
+                <Field label="Capacity ceiling"><span className="tnum">{formatNairaCompact(assessment.capacityCeiling, 2)}</span></Field>
+                <Field label="Affordability ceiling"><span className="tnum">{formatNairaCompact(assessment.affordabilityCeiling, 2)}</span></Field>
+                <Field label="Free cash flow"><span className="tnum">{formatNairaCompact(assessment.freeCashFlow, 2)} / month</span></Field>
+                <Field label="Cover on recommended"><span className="tnum">{assessment.projectedDscr.toFixed(2)}× <span className="text-ink-3">vs {policy.eligibility.targetDscr.toFixed(2)}× target</span></span></Field>
+              </div>
+              <p className="text-[13px] text-ink-2 mt-4">{assessment.constraintNote}</p>
+            </div>
             <div className="px-6 py-4 border-t border-line-subtle bg-sunken">
               <div className="eyebrow mb-2">Policy evaluation · {assessment.policyPassed ? "all checks passed" : `${assessment.policyChecks.filter((c) => !c.passed).length} exception(s)`}</div>
               <div className="flex flex-wrap gap-2">{assessment.policyChecks.map((c) => <Chip key={c.label} family={c.passed ? "success" : "warning"} title={c.detail}>{c.label}</Chip>)}</div>

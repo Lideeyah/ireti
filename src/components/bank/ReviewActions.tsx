@@ -78,7 +78,7 @@ export function DecisionActions({ app, offer, assessment, reviewerName, reviewer
   );
 }
 
-export function DisbursementActions({ applicationId, status, demoMode }: { applicationId: string; status: string; demoMode: boolean }) {
+export function DisbursementActions({ applicationId, status }: { applicationId: string; status: string }) {
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string>();
@@ -93,13 +93,12 @@ export function DisbursementActions({ applicationId, status, demoMode }: { appli
     <div className="flex items-center gap-2 shrink-0 flex-nowrap">
       {error && <span className="text-[12.5px] text-danger">{error}</span>}
       {status === "failed" && <Button loading={busy === "esc"} onClick={() => run("esc", () => escalateDisbursementAction(applicationId))}>Escalate to operations</Button>}
-      {demoMode && status !== "processing" && <Button variant="ghost" loading={busy === "fail"} onClick={() => run("fail", () => initiateDisbursementAction(applicationId, "failure"))}>Simulate failure</Button>}
       <Button variant="primary" loading={busy === "init" || status === "processing"} disabled={status === "processing"} onClick={() => run("init", () => initiateDisbursementAction(applicationId))}>{status === "failed" ? "Retry disbursement" : status === "processing" ? "Initiating disbursement" : "Initiate disbursement"}</Button>
     </div>
   );
 }
 
-export function RepaymentActions({ repaymentId, failed, demoMode }: { repaymentId: string; failed: boolean; demoMode: boolean }) {
+export function RepaymentActions({ repaymentId, failed }: { repaymentId: string; failed: boolean }) {
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string>();
@@ -113,7 +112,6 @@ export function RepaymentActions({ repaymentId, failed, demoMode }: { repaymentI
   return (
     <div className="flex items-center gap-2 shrink-0 flex-nowrap">
       {error && <span className="text-[12.5px] text-danger">{error}</span>}
-      {demoMode && <Button variant="ghost" loading={busy === "fail"} onClick={() => run("fail", "failure")}>Simulate failed debit</Button>}
       <Button loading={busy === "ok"} onClick={() => run("ok")}>{failed ? "Retry debit" : "Process next repayment"}</Button>
     </div>
   );
