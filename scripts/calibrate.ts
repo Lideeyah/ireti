@@ -45,3 +45,21 @@ import { institutionById } from "../src/lib/seed/institutions";
 const perInst = ["sterling", "firstbank", "uba"].flatMap((id) => generateInstitutionData({ businessId: "biz_adebayo", institution: institutionById(id), connectionId: `c_${id}`, asOf, seedKey: "adebayo" }).transactions);
 const p2 = buildFinancialProfile({ businessId: "biz_adebayo", transactions: perInst, accounts: data.accounts, asOf, institutionsConnected: 3 });
 console.log("per-institution path: avgIn", fmt(p2.avgMonthlyInflow), "net", fmt(p2.avgNetMonthlyFlow), "score", assessCredit(p2, DEFAULT_POLICY).score);
+
+const a2 = assessCredit(profile, DEFAULT_POLICY);
+console.log("\n=== eligibility mechanism ===");
+console.log({
+  score: a2.score,
+  eligible: fmt(a2.eligibleAmount),
+  recommended: fmt(a2.recommendedAmount),
+  tenor: a2.recommendedTenorMonths,
+  capacityCeiling: fmt(a2.capacityCeiling),
+  affordabilityCeiling: fmt(a2.affordabilityCeiling),
+  binding: a2.bindingConstraint,
+  freeCashFlow: fmt(a2.freeCashFlow),
+  maxInstalment: fmt(a2.maxInstalment),
+  dscr: a2.projectedDscr.toFixed(2),
+  policyPassed: a2.policyPassed,
+  action: a2.recommendation.action,
+});
+console.log(a2.constraintNote);

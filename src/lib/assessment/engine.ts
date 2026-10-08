@@ -6,7 +6,7 @@ import type {
   Rating,
 } from "../domain/types";
 import { evaluatePolicy } from "../policy/evaluate";
-import { formatNairaCompact, formatPercent } from "../format";
+import { formatNaira, formatNairaCompact, formatPercent } from "../format";
 import { ordinal } from "../util/dates";
 import { uid } from "../util/ids";
 import { DEMO_DECISION_SUPPORT } from "../ai/decisionSupport";
@@ -14,12 +14,21 @@ import { DEMO_DECISION_SUPPORT } from "../ai/decisionSupport";
 export const MODEL_VERSION = "CA-2.4";
 
 /**
- * Deterministic demo credit-assessment engine.
+ * Credit assessment engine.
  *
- * This is a proprietary, configurable assessment derived from connected-account data.
- * It is NOT a regulated credit-bureau score and is labelled as such throughout the UI.
- * Weights and thresholds are held in ENGINE_CONFIG so a bank can tune them; a production
- * model would be connected behind the same CreditAssessment output shape.
+ * The engine is deterministic and fully configurable: every weight, threshold and
+ * ratio it uses comes from ENGINE_CONFIG or the bank's BankPolicy, so a bank can
+ * re-tune it without code changes. It produces a proprietary assessment derived from
+ * connected-account behaviour; it is not a regulated credit-bureau score.
+ *
+ * Scoring  — five weighted factors, each normalised to 0–100 from observed figures.
+ * Eligibility — the lower of two independent ceilings:
+ *   1. Capacity ceiling: a risk-adjusted share of annualised net cash flow, less a
+ *      charge for existing obligations.
+ *   2. Affordability ceiling: the largest principal whose instalment at the longest
+ *      permitted tenor still meets the bank's target debt-service coverage ratio,
+ *      after haircuts for revenue volatility and a declining revenue trend.
+ * Both are capped by the bank's configured maximum loan amount.
  */
 export const ENGINE_CONFIG = {
   weights: {
@@ -30,6 +39,14 @@ export const ENGINE_CONFIG = {
     repaymentCapacity: 0.2,
   },
   bands: { strong: 75, moderate: 55 },
+  /** Coefficient of variation at which the revenue-consistency score reaches zero. */
+  revenueCvZeroAt: 0.4545,
+  /** Maximum score movement (points) attributable to the recent revenue trend. */
+  trendAdjustmentCap: 10,
+  /** Floor applied to the volatility haircut so a volatile business is never zero-rated. */
+  volatilityHaircutFloor: 0.5,
+  /** Floor applied to the declining-trend haircut. */
+  trendHaircutFloor: 0.6,
 };
 
 function clamp(v: number, min = 0, max = 100) {
@@ -44,31 +61,95 @@ function roundTo(value: number, step: number) {
   return Math.round(value / step) * step;
 }
 
+/** Present value of an annuity: the principal an instalment can service. */
+export function principalForInstalment(instalment: number, monthlyRate: number, months: number): number {
+  if (instalment <= 0 || months <= 0) return 0;
+  if (monthlyRate <= 0) return instalment * months;
+  return instalment * ((1 - Math.pow(1 + monthlyRate, -months)) / monthlyRate);
+}
+
+/** Instalment required to service a principal: the inverse of the above. */
+export function instalmentForPrincipal(principal: number, monthlyRate: number, months: number): number {
+  if (principal <= 0 || months <= 0) return 0;
+  if (monthlyRate <= 0) return principal / months;
+  return (principal * monthlyRate) / (1 - Math.pow(1 + monthlyRate, -months));
+}
+
 export function assessCredit(profile: FinancialProfile, policy: BankPolicy): CreditAssessment {
   const w = ENGINE_CONFIG.weights;
 
-  // Revenue consistency: coefficient of variation of monthly inflows plus recent trend.
+  // --- Factor 1: revenue consistency -------------------------------------
+  // Coefficient of variation of monthly inflows, adjusted by the recent trend.
   const cv = profile.revenueCoefficientOfVariation;
-  let revScore = clamp(100 - cv * 220);
-  revScore = clamp(revScore + clamp(profile.recentInflowChangePct * 100, -10, 10));
+  const consistencyBase = clamp(100 - (cv / ENGINE_CONFIG.revenueCvZeroAt) * 100);
+  const trendAdjustment = clamp(profile.recentInflowChangePct * 100, -ENGINE_CONFIG.trendAdjustmentCap, ENGINE_CONFIG.trendAdjustmentCap);
+  const revScore = clamp(consistencyBase + trendAdjustment);
 
-  // Cash-flow stability: share of cash-positive months and net margin.
+  // --- Factor 2: cash-flow stability -------------------------------------
+  // Share of cash-positive months plus net margin on inflows.
   const positiveShare = profile.positiveNetMonths / profile.coverageMonths;
   const margin = profile.avgMonthlyInflow ? profile.avgNetMonthlyFlow / profile.avgMonthlyInflow : 0;
   const cfScore = clamp(positiveShare * 60 + clamp(margin, 0, 0.5) * 80);
 
-  // Account activity: breadth of institutions and transaction volume.
+  // --- Factor 3: account activity ----------------------------------------
+  // Breadth of connected institutions and operational transaction volume.
   const actScore = clamp(Math.min(profile.institutionsConnected, 3) * 16 + Math.min(profile.avgTransactionsPerMonth, 60) * 0.9);
 
-  // Existing obligations: debt service relative to net flow, and outstanding relative to annual net.
+  // --- Factor 4: existing obligations ------------------------------------
+  // Debt service against net flow, plus outstanding balance against annualised net flow.
   const annualNet = Math.max(profile.avgNetMonthlyFlow * 12, 1);
   const obligationLoad = profile.existingObligations / annualNet;
   const oblScore = clamp(100 - profile.debtServiceRatio * 200 - obligationLoad * 100);
 
-  // Repayment capacity: observed payment consistency and headroom after debt service.
-  const consistencyBase = profile.paymentConsistency === "Strong" ? 85 : profile.paymentConsistency === "Moderate" ? 60 : 30;
+  // --- Factor 5: repayment capacity --------------------------------------
+  // Observed payment behaviour and headroom remaining after existing debt service.
+  const consistencyScore = profile.paymentConsistency === "Strong" ? 85 : profile.paymentConsistency === "Moderate" ? 60 : 30;
   const headroom = clamp((1 - profile.debtServiceRatio) * 100);
-  const repScore = clamp(consistencyBase * 0.6 + headroom * 0.4);
+  const repScore = clamp(consistencyScore * 0.6 + headroom * 0.4);
+
+  // --- Eligibility: capacity ceiling -------------------------------------
+  const score = Math.round(
+    revScore * w.revenueConsistency +
+      cfScore * w.cashFlowStability +
+      actScore * w.accountActivity +
+      oblScore * w.existingObligations +
+      repScore * w.repaymentCapacity,
+  );
+  const riskScalar = score / 100;
+  const capacityCeiling = annualNet * policy.eligibility.capacityRatio * riskScalar - profile.existingObligations * 0.25;
+
+  // --- Eligibility: affordability ceiling (DSCR) -------------------------
+  const freeCashFlow = Math.max(0, profile.avgNetMonthlyFlow - profile.monthlyDebtService);
+  const volatilityHaircut = clamp(1 - cv * policy.eligibility.volatilitySensitivity, ENGINE_CONFIG.volatilityHaircutFloor, 1);
+  const trendHaircut = clamp(1 + Math.min(0, profile.recentInflowChangePct), ENGINE_CONFIG.trendHaircutFloor, 1);
+  // Instalment the business can service while still meeting the bank's target cover.
+  const maxInstalment = (freeCashFlow / policy.eligibility.targetDscr) * volatilityHaircut * trendHaircut;
+  const longestTenor = Math.max(...policy.allowedTenors);
+  const monthlyRate = policy.annualInterestRate / 12;
+  const affordabilityCeiling = principalForInstalment(maxInstalment, monthlyRate, longestTenor);
+
+  const rawEligible = Math.min(capacityCeiling, affordabilityCeiling, policy.maxLoanAmount);
+  const eligibleAmount = Math.max(0, roundTo(rawEligible, 500_000));
+  const recommendedAmount = roundTo(eligibleAmount * policy.eligibility.recommendedShare, 500_000);
+
+  // Recommended tenor: the shortest permitted tenor at which the recommended amount
+  // still clears the cover target. A tight instalment lengthens the tenor rather than
+  // shrinking the advance, which is what a credit officer would do by hand.
+  const tenors = [...policy.allowedTenors].sort((a, b) => a - b);
+  const preferredTenor = tenors.includes(6) ? 6 : tenors[Math.floor(tenors.length / 2)];
+  const candidateTenors = tenors.filter((t) => t >= preferredTenor);
+  let recommendedTenorMonths = candidateTenors[candidateTenors.length - 1] ?? preferredTenor;
+  for (const t of candidateTenors) {
+    const instalment = instalmentForPrincipal(recommendedAmount, monthlyRate, t);
+    if (instalment > 0 && freeCashFlow / instalment >= policy.eligibility.targetDscr) {
+      recommendedTenorMonths = t;
+      break;
+    }
+  }
+  const recommendedInstalment = instalmentForPrincipal(recommendedAmount, monthlyRate, recommendedTenorMonths);
+  const projectedDscr = recommendedInstalment > 0 ? freeCashFlow / recommendedInstalment : 0;
+  const bindingConstraint: CreditAssessment["bindingConstraint"] =
+    rawEligible === policy.maxLoanAmount ? "bank_maximum" : affordabilityCeiling <= capacityCeiling ? "affordability" : "capacity";
 
   const factors: AssessmentFactor[] = [
     {
@@ -77,7 +158,7 @@ export function assessCredit(profile: FinancialProfile, policy: BankPolicy): Cre
       score: Math.round(revScore),
       rating: rating(revScore),
       weight: w.revenueConsistency,
-      evidence: `Monthly inflow varied by ${formatPercent(cv)} around its mean across ${profile.coverageMonths} months. The last three months averaged ${formatNairaCompact(profile.recentAvgInflow)}, ${profile.recentInflowChangePct >= 0 ? "up" : "down"} ${formatPercent(Math.abs(profile.recentInflowChangePct))} on the prior period, and remained within a narrow range.`,
+      evidence: `Monthly inflow varied by ${formatPercent(cv)} around its mean across ${profile.coverageMonths} months. The last three months averaged ${formatNairaCompact(profile.recentAvgInflow)}, ${profile.recentInflowChangePct >= 0 ? "up" : "down"} ${formatPercent(Math.abs(profile.recentInflowChangePct))} on the prior period.`,
     },
     {
       key: "cash_flow_stability",
@@ -109,23 +190,21 @@ export function assessCredit(profile: FinancialProfile, policy: BankPolicy): Cre
       score: Math.round(repScore),
       rating: rating(repScore),
       weight: w.repaymentCapacity,
-      evidence: `${profile.loanRepaymentsOnTime} of ${profile.loanRepaymentsObserved} observed repayments on existing facilities occurred within the first ten days of the month. Headroom after existing debt service is ${formatPercent(1 - profile.debtServiceRatio)} of net monthly flow.`,
+      evidence: `${profile.loanRepaymentsOnTime} of ${profile.loanRepaymentsObserved} observed repayments on existing facilities fell in the first ten days of the month. Free cash flow after existing debt service is ${formatNairaCompact(freeCashFlow)} per month, supporting an instalment of up to ${formatNairaCompact(maxInstalment)} at the bank's target cover of ${policy.eligibility.targetDscr.toFixed(2)}×.`,
     },
   ];
 
-  const score = Math.round(factors.reduce((a, f) => a + f.score * f.weight, 0));
   const band = score >= ENGINE_CONFIG.bands.strong ? "Strong" : score >= ENGINE_CONFIG.bands.moderate ? "Moderate" : "Weak";
-
-  // Eligibility: policy-defined share of annualised net flow, scaled by score, net of outstanding obligations.
-  const rawEligible = annualNet * policy.eligibility.capacityRatio * (score / 100) - profile.existingObligations * 0.25;
-  const eligibleAmount = Math.max(0, Math.min(policy.maxLoanAmount, roundTo(rawEligible, 500_000)));
-  const recommendedAmount = roundTo(eligibleAmount * policy.eligibility.recommendedShare, 500_000);
-  const recommendedTenorMonths = policy.allowedTenors.includes(6) ? 6 : policy.allowedTenors[Math.floor(policy.allowedTenors.length / 2)];
-
-  const policyChecks = evaluatePolicy(policy, profile, score, eligibleAmount);
+  const policyChecks = evaluatePolicy(policy, profile, score, eligibleAmount, projectedDscr);
   const policyPassed = policyChecks.every((c) => c.passed);
+  const support = DEMO_DECISION_SUPPORT.analyse({ profile, factors, score, band, policyPassed, policyChecks, projectedDscr, targetDscr: policy.eligibility.targetDscr });
 
-  const support = DEMO_DECISION_SUPPORT.analyse({ profile, factors, score, band, policyPassed, policyChecks });
+  const constraintNote =
+    bindingConstraint === "affordability"
+      ? `Eligibility is limited by affordability: ${formatNaira(maxInstalment)} is the largest instalment that still meets the ${policy.eligibility.targetDscr.toFixed(2)}× cover target after volatility and trend haircuts.`
+      : bindingConstraint === "bank_maximum"
+        ? `Eligibility is capped at the bank's maximum lending amount of ${formatNaira(policy.maxLoanAmount)}.`
+        : `Eligibility is limited by capacity: ${formatPercent(policy.eligibility.capacityRatio)} of annualised net cash flow, risk-adjusted at ${Math.round(riskScalar * 100)}%, less a charge for existing obligations.`;
 
   return {
     id: uid("ca"),
@@ -142,6 +221,12 @@ export function assessCredit(profile: FinancialProfile, policy: BankPolicy): Cre
     recommendedTenorMonths,
     repaymentWindow: profile.strongestInflowWindow,
     recommendedRepaymentDay: profile.recommendedRepaymentDay,
+    freeCashFlow,
+    maxInstalment,
+    projectedDscr,
+    capacityCeiling: Math.max(0, capacityCeiling),
+    affordabilityCeiling: Math.max(0, affordabilityCeiling),
+    bindingConstraint,
     riskObservations: support.riskObservations,
     repaymentObservations: [
       `Strongest recurring inflow occurs between the ${ordinal(profile.strongestInflowWindow.start)} and ${ordinal(profile.strongestInflowWindow.end)} of each month, averaging ${formatNairaCompact(profile.avgInflowDuringWindow)}.`,
@@ -150,5 +235,6 @@ export function assessCredit(profile: FinancialProfile, policy: BankPolicy): Cre
     recommendation: support.recommendation,
     policyChecks,
     policyPassed,
+    constraintNote,
   };
 }

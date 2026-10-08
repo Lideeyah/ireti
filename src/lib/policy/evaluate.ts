@@ -2,14 +2,16 @@ import type { BankPolicy, FinancialProfile, PolicyCheck } from "../domain/types"
 import { formatNaira, formatPercent } from "../format";
 
 /**
- * Policy evaluation: applies configured bank rules to an assessment result.
- * This layer is deliberately separate from analysis and from the recommendation.
+ * Policy evaluation: applies the bank's configured lending rules to an assessment.
+ * Separate from analysis (what the data says) and from the recommendation (what to do),
+ * so a policy change re-scores eligibility without touching either.
  */
 export function evaluatePolicy(
   policy: BankPolicy,
   profile: FinancialProfile,
   score: number,
   eligibleAmount: number,
+  projectedDscr: number,
 ): PolicyCheck[] {
   return [
     {
@@ -18,12 +20,17 @@ export function evaluatePolicy(
       detail: `Score ${score} against configured minimum of ${policy.minAssessmentScore}.`,
     },
     {
-      label: "Debt-service ratio",
-      passed: profile.debtServiceRatio <= policy.eligibility.maxDebtServiceRatio,
-      detail: `Observed debt service is ${formatPercent(profile.debtServiceRatio)} of net monthly flow (limit ${formatPercent(policy.eligibility.maxDebtServiceRatio)}).`,
+      label: "Debt-service coverage",
+      passed: projectedDscr >= policy.eligibility.targetDscr,
+      detail: `Projected cover of ${projectedDscr.toFixed(2)}× on the recommended amount against a target of ${policy.eligibility.targetDscr.toFixed(2)}×.`,
     },
     {
-      label: "Eligible amount within bank maximum",
+      label: "Existing debt-service ratio",
+      passed: profile.debtServiceRatio <= policy.eligibility.maxDebtServiceRatio,
+      detail: `Existing debt service is ${formatPercent(profile.debtServiceRatio)} of net monthly flow (limit ${formatPercent(policy.eligibility.maxDebtServiceRatio)}).`,
+    },
+    {
+      label: "Within bank maximum",
       passed: eligibleAmount <= policy.maxLoanAmount,
       detail: `Eligibility ${formatNaira(eligibleAmount)} against maximum ${formatNaira(policy.maxLoanAmount)}.`,
     },

@@ -44,6 +44,8 @@ export interface Business {
   declaredMonthlyRevenue: number;
   identityVerified: boolean;
   identityVerifiedAt?: string;
+  /** Account designated to receive disbursement and carry the repayment mandate. */
+  disbursementAccountId?: string;
   createdAt: string;
 }
 
@@ -177,6 +179,16 @@ export interface CreditAssessment {
   recommendedTenorMonths: number;
   repaymentWindow: { start: number; end: number };
   recommendedRepaymentDay: number;
+  /** Net monthly flow remaining after existing debt service. */
+  freeCashFlow: number;
+  /** Largest instalment serviceable at the bank's target cover, after haircuts. */
+  maxInstalment: number;
+  /** Projected cover for the recommended amount: free cash flow ÷ instalment. */
+  projectedDscr: number;
+  capacityCeiling: number;
+  affordabilityCeiling: number;
+  bindingConstraint: "capacity" | "affordability" | "bank_maximum";
+  constraintNote: string;
   riskObservations: string[];
   repaymentObservations: string[];
   recommendation: DecisionRecommendation;
@@ -446,8 +458,12 @@ export interface BankPolicy {
     capacityRatio: number;
     /** Recommended amount as a share of eligibility. */
     recommendedShare: number;
-    /** Maximum debt-service-to-net-flow ratio permitted. */
+    /** Maximum existing-debt-service-to-net-flow ratio permitted. */
     maxDebtServiceRatio: number;
+    /** Target debt-service coverage ratio for a new instalment. */
+    targetDscr: number;
+    /** How sharply revenue volatility reduces the affordable instalment. */
+    volatilitySensitivity: number;
   };
   repaymentRules: {
     alignToInflowWindow: boolean;
@@ -472,6 +488,7 @@ export interface DocumentRecord {
   type: string;
   name: string;
   status: "requested" | "provided" | "verified";
+  note?: string;
   providedAt?: string;
 }
 

@@ -198,10 +198,15 @@ export function buildSeed(policy: BankPolicy, now = new Date()): SeedResult {
     assessment.generatedAt = iso(at(addDays(submitted, -1), 11, 22));
     out.assessments.push(assessment);
 
-    if (assessment.eligibleAmount < policy.minLoanAmount) {
-      throw new Error(`Seed spec ${spec.key} produces eligibility below the policy minimum; adjust its shape.`);
+    // A business whose eligibility falls under the bank minimum can still have applied
+    // and been declined; any other status would contradict its own assessment.
+    if (assessment.eligibleAmount < policy.minLoanAmount && spec.status !== "rejected") {
+      throw new Error(`Seed spec ${spec.key} produces eligibility below the policy minimum but is not a declined application.`);
     }
-    const requested = Math.min(assessment.eligibleAmount, Math.max(policy.minLoanAmount, Math.round((assessment.eligibleAmount * spec.amountShare) / 500_000) * 500_000));
+    const requested =
+      assessment.eligibleAmount < policy.minLoanAmount
+        ? policy.minLoanAmount
+        : Math.min(assessment.eligibleAmount, Math.max(policy.minLoanAmount, Math.round((assessment.eligibleAmount * spec.amountShare) / 500_000) * 500_000));
     const offer = priceLoan({ principal: requested, tenorMonths: spec.tenor, policy, businessId: bizId, repaymentWindow: assessment.repaymentWindow, recommendedRepaymentDay: assessment.recommendedRepaymentDay });
     offer.createdAt = iso(submitted);
     out.offers.push(offer);

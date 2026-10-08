@@ -14,9 +14,20 @@ export const DEFAULT_POLICY: BankPolicy = {
   processingFeeRate: 0.005,
   requiredDocuments: ["CAC certificate", "Valid means of identification", "Proof of business address"],
   eligibility: {
+    /** Share of annualised net cash flow that may be lent at a perfect score. */
     capacityRatio: 0.7,
+    /** Recommended amount as a share of eligibility. */
     recommendedShare: 0.65,
+    /** Maximum existing-debt-service-to-net-flow ratio permitted. */
     maxDebtServiceRatio: 0.6,
+    /**
+     * Target debt-service coverage: free cash flow must exceed the instalment by this
+     * multiple. Set for short-tenor working capital, where the advance is itself
+     * working in the business; raise it towards 1.25 for longer-term lending.
+     */
+    targetDscr: 1.1,
+    /** How sharply revenue volatility reduces the affordable instalment. */
+    volatilitySensitivity: 0.5,
   },
   repaymentRules: {
     alignToInflowWindow: true,

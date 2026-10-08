@@ -25,6 +25,9 @@ export interface DecisionSupportInput {
   band: "Strong" | "Moderate" | "Weak";
   policyPassed: boolean;
   policyChecks: PolicyCheck[];
+  /** Projected debt-service cover on the recommended amount. */
+  projectedDscr: number;
+  targetDscr: number;
 }
 
 export interface DecisionSupportOutput {
@@ -40,7 +43,7 @@ export interface DecisionSupportService {
 
 export const DEMO_DECISION_SUPPORT: DecisionSupportService = {
   name: "Deterministic demo decision support",
-  analyse({ profile, factors, score, policyPassed, policyChecks }) {
+  analyse({ profile, factors, score, policyPassed, policyChecks, projectedDscr, targetDscr }) {
     const byKey = Object.fromEntries(factors.map((f) => [f.key, f]));
     const risks: string[] = [];
     const repay: string[] = [];
@@ -57,10 +60,16 @@ export const DEMO_DECISION_SUPPORT: DecisionSupportService = {
       risks.push(`${profile.coverageMonths - profile.positiveNetMonths} months closed cash-negative in the observed period.`);
     }
     if (profile.institutionsConnected < 2) risks.push("Only one institution connected; the financial picture may be incomplete.");
+    if (projectedDscr < targetDscr) {
+      risks.push(`Projected debt-service cover of ${projectedDscr.toFixed(2)}× falls short of the ${targetDscr.toFixed(2)}× target; the instalment leaves little headroom.`);
+    }
     if (risks.length === 0) risks.push("No material risk indicators observed in the connected-account data.");
 
     repay.push(
       `Scheduling repayments on the ${ordinal(profile.recommendedRepaymentDay)} places collection inside the window where inflows are typically strongest.`,
+    );
+    repay.push(
+      `Free cash flow after existing debt service covers the recommended instalment ${projectedDscr.toFixed(2)} times over.`,
     );
     if (profile.avgInflowDuringWindow > 0) {
       repay.push(
@@ -76,6 +85,7 @@ export const DEMO_DECISION_SUPPORT: DecisionSupportService = {
         byKey.existing_obligations.rating === "Weak" ? "Existing obligations are elevated" : "Existing obligations remain manageable",
       );
     }
+    reasoning.push(`Debt-service cover of ${projectedDscr.toFixed(2)}× on the recommended amount`);
     reasoning.push("Repayment window aligns with recurring inflows");
 
     const failed = policyChecks.filter((c) => !c.passed);
@@ -89,7 +99,7 @@ export const DEMO_DECISION_SUPPORT: DecisionSupportService = {
         confidence: "High",
         reasoning: [...failed.map((c) => c.detail), ...reasoning.slice(0, 2)],
       };
-    } else if (score >= 75 && strongFactors.length >= 3) {
+    } else if (score >= 75 && strongFactors.length >= 3 && projectedDscr >= targetDscr) {
       recommendation = {
         action: "approve",
         headline: "Approve within configured eligibility",
