@@ -26,7 +26,6 @@ export function UserMenu({ user, demoMode }: { user: ShellUser; demoMode: boolea
             <div className="text-[12px] text-white/55 truncate">{user.email}</div>
             <div className="text-[12px] text-white/55 mt-0.5">{ROLE_LABELS[user.role]}</div>
           </div>
-          {demoMode && <div className="px-3.5 py-2 text-[11.5px] text-white/45 border-b border-white/10">Demo environment · simulated providers</div>}
           <button onClick={() => start(() => signOutAction())} disabled={pending} className="w-full flex items-center gap-2.5 px-3.5 h-9 text-[13px] text-white/80 hover:bg-white/[0.06] hover:text-white">
             <LogOut size={14} /> Sign out
           </button>

@@ -14,7 +14,3 @@ export function Banner({ tone = "info", title, children, action, className }: { 
     </div>
   );
 }
-
-export function DemoTag({ children = "Demo environment" }: { children?: React.ReactNode }) {
-  return <span className="inline-flex items-center h-5 px-1.5 rounded-[4px] bg-warning-bg border border-warning-border text-warning text-[10.5px] font-semibold tracking-[0.06em] uppercase">{children}</span>;
-}

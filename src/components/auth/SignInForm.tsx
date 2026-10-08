@@ -22,7 +22,7 @@ export function SignInForm({ demoAccounts, demoPassword }: { demoAccounts: { ema
       <Button type="submit" variant="primary" className="w-full h-10 text-[14px]" loading={pending}>Sign in</Button>
       {demoAccounts.length > 0 && demoPassword && (
         <div className="rounded-[8px] border border-line bg-sunken p-4">
-          <div className="eyebrow mb-2">Demo environment accounts</div>
+          <div className="eyebrow mb-2">Team sign-in</div>
           <ul className="space-y-1">
             {demoAccounts.map((a) => (
               <li key={a.email}>
@@ -33,7 +33,7 @@ export function SignInForm({ demoAccounts, demoPassword }: { demoAccounts: { ema
               </li>
             ))}
           </ul>
-          <p className="text-[12px] text-ink-3 mt-2">Selecting an account fills the form. Shared password for all demo accounts: <code className="font-mono text-ink">{demoPassword}</code></p>
+          <p className="text-[12px] text-ink-3 mt-2">Select a colleague to fill the form. Shared password in this environment: <code className="font-mono text-ink">{demoPassword}</code></p>
         </div>
       )}
     </form>

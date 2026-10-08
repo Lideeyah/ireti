@@ -43,7 +43,6 @@ export function AppShell({ area, suffix, nav, user, notifications, demoMode, chi
             <span className="hidden lg:inline text-[13px] text-ink-3">{area === "sme" ? "Business portal" : "Operations console"}</span>
           </div>
           <div className="flex items-center gap-2">
-            {demoMode && <span className="hidden sm:inline-flex items-center gap-1.5 text-[11.5px] font-medium text-ink-3"><span className="w-1.5 h-1.5 rounded-full bg-warning" />Demo environment</span>}
             <NotificationCenter notifications={notifications} />
           </div>
         </header>

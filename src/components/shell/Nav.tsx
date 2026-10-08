@@ -2,10 +2,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { clsx } from "clsx";
-import { LayoutDashboard, ListChecks, Gauge, FileText, CalendarClock, Landmark, Activity, Inbox, Radar, ScrollText, SlidersHorizontal, Settings2, type LucideIcon } from "lucide-react";
+import { LayoutDashboard, ListChecks, Gauge, FileText, CalendarClock, Landmark, Activity, Inbox, Radar, ScrollText, SlidersHorizontal, Settings2, Receipt, Building2, type LucideIcon } from "lucide-react";
 
 /** Icons are referenced by name so nav definitions can cross the server/client boundary. */
-export const NAV_ICONS = { LayoutDashboard, ListChecks, Gauge, FileText, CalendarClock, Landmark, Activity, Inbox, Radar, ScrollText, SlidersHorizontal, Settings2 } satisfies Record<string, LucideIcon>;
+export const NAV_ICONS = { LayoutDashboard, ListChecks, Gauge, FileText, CalendarClock, Landmark, Activity, Inbox, Radar, ScrollText, SlidersHorizontal, Settings2, Receipt, Building2 } satisfies Record<string, LucideIcon>;
 export type NavIcon = keyof typeof NAV_ICONS;
 
 export interface NavItem {
