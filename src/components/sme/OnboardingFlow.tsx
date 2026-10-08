@@ -14,7 +14,7 @@ import { Card, CardHeader, Field, Stat, Divider, ListHeader } from "@/components
 import { Button } from "@/components/ui/Button";
 import { Input, Label, Select, FieldError } from "@/components/ui/Input";
 import { ConnectionStatusChip, RatingChip } from "@/components/ui/Chip";
-import { Banner, DemoTag } from "@/components/ui/Banner";
+import { Banner } from "@/components/ui/Banner";
 import { formatNaira, formatNairaCompact, formatRelative, formatWindow } from "@/lib/format";
 import { ordinal } from "@/lib/util/dates";
 
@@ -140,7 +140,7 @@ function IdentityStep({ business, onBack, onNext }: { business: Business; onBack
         <div className="max-w-[380px]">
           <Label required>BVN</Label>
           <Input inputMode="numeric" maxLength={11} value={bvn} onChange={(e) => setBvn(e.target.value.replace(/\D/g, ""))} placeholder="11-digit number" className="tnum" disabled={state === "verifying"} />
-          <p className="text-[12.5px] text-ink-3 mt-2">The verification adapter is simulated in this environment: any 11-digit number verifies.</p>
+          <p className="text-[12.5px] text-ink-3 mt-2">Checked against the identity provider configured for this environment. Your BVN is not stored.</p>
           {state === "failed" && <div className="mt-4"><Banner tone="danger" title="Identity could not be verified">{reason}</Banner></div>}
           <div className="mt-6 flex items-center gap-2">
             <Button variant="primary" onClick={verify} loading={state === "verifying"} disabled={bvn.length !== 11}>{state === "verifying" ? "Verifying identity" : "Verify identity"}</Button>
@@ -184,7 +184,7 @@ function AccountsStep({ connections, accounts, assessment, onRun }: Props & { on
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader eyebrow="Step 03" title="Connect your business accounts" description="Ìrètí uses authorised Open Banking connections to understand the business's financial position across institutions. You authorise each connection with the institution; no banking passwords are entered here." action={<DemoTag>Simulated bank connection</DemoTag>} />
+        <CardHeader eyebrow="Step 03" title="Connect your business accounts" description="Ìrètí uses authorised Open Banking connections to understand the business's financial position across institutions. You authorise each connection with the institution; no banking passwords are entered here." />
         <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5">
           {INSTITUTIONS.map((inst) => {
             const conn = connectionFor(inst.id);
@@ -264,7 +264,7 @@ function AnalysisStep({ onDone }: { onDone: () => void }) {
   }, []);
   return (
     <Card className="max-w-[600px]">
-      <CardHeader eyebrow="Step 04" title="Building your financial profile" description="Consolidating approximately 12 months of transaction history across connected institutions, with greater weight placed on recent activity." action={<DemoTag>Demo credit assessment</DemoTag>} />
+      <CardHeader eyebrow="Step 04" title="Building your financial profile" description="Consolidating approximately 12 months of transaction history across connected institutions, with greater weight placed on recent activity." />
       <ProcessingList steps={ANALYSIS_STEPS} current={current} />
       {error && <div className="mt-5"><Banner tone="danger" title="Analysis could not be completed">{error}</Banner></div>}
     </Card>

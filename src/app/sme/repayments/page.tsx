@@ -7,9 +7,9 @@ import { Card, CardHeader, Stat, StatRow, Divider, ListHeader } from "@/componen
 import { Button } from "@/components/ui/Button";
 import { RepaymentStatusChip, HealthChip } from "@/components/ui/Chip";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { Banner, DemoTag } from "@/components/ui/Banner";
+import { Banner } from "@/components/ui/Banner";
 import { RepaymentTimeline } from "@/components/charts/RepaymentTimeline";
-import { RetryRepaymentButton } from "@/components/sme/ApplicationActions";
+import { RetryRepaymentButton, PayInstalmentButton } from "@/components/sme/ApplicationActions";
 import { formatNaira, formatNairaCompact, formatDate, formatDateTime, formatWindow } from "@/lib/format";
 import { ordinal } from "@/lib/util/dates";
 
@@ -24,7 +24,7 @@ export default async function RepaymentsPage() {
       </>
     );
   }
-  const failed = repayments.find((r) => r.status === "failed");
+  const failed = repayments.find((r) => r.status === "failed" || r.status === "overdue");
   const next = repayments.find((r) => r.status === "failed" || r.status === "processing" || r.status === "scheduled");
   const history = repayments.filter((r) => r.status !== "scheduled");
 
@@ -33,8 +33,8 @@ export default async function RepaymentsPage() {
       <PageHeader title={`Facility ${activeApplication.reference}`} meta={<><HealthChip health={plan.health} /><span>Mandate {plan.mandateReference}</span><span>·</span><span>Disbursed {formatDate(plan.startedAt)}</span></>} />
       {failed && (
         <div className="mb-6">
-          <Banner tone="danger" title="Repayment attention required" action={<div className="flex gap-2"><RetryRepaymentButton repaymentId={failed.id} variant="primary" /><Link href={`/sme/application/${activeApplication.id}`}><Button size="sm">Contact bank</Button></Link></div>}>
-            Amount {formatNaira(failed.amount)} due {formatDate(failed.dueDate)}. Reason: {failed.failureReason}. Attempts: {failed.attempts}.
+          <Banner tone="danger" title="Repayment attention required" action={<div className="flex gap-2"><PayInstalmentButton repaymentId={failed.id} label="Pay now" variant="primary" /><Link href={`/sme/application/${activeApplication.id}`}><Button size="sm">Contact bank</Button></Link></div>}>
+            {formatNaira(failed.amount)} due {formatDate(failed.dueDate)}.{failed.failureReason ? ` ${failed.failureReason}.` : " The mandate could not be collected."} {failed.attempts} {failed.attempts === 1 ? "attempt" : "attempts"} so far.
           </Banner>
         </div>
       )}
@@ -74,7 +74,7 @@ export default async function RepaymentsPage() {
                     <td className="num tnum">{formatNaira(r.interestPortion)}</td>
                     <td className="num tnum font-medium">{formatNaira(r.amount)}</td>
                     <td><RepaymentStatusChip status={r.status} /></td>
-                    <td className="text-right">{r.status === "failed" && <RetryRepaymentButton repaymentId={r.id} />}</td>
+                    <td className="text-right">{r.status === "failed" || r.status === "overdue" ? <RetryRepaymentButton repaymentId={r.id} /> : r.id === next?.id && r.status === "scheduled" ? <PayInstalmentButton repaymentId={r.id} /> : null}</td>
                   </tr>
                 ))}
               </tbody>

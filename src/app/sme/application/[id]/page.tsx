@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { ApplicationStatusChip, Chip } from "@/components/ui/Chip";
 import { Banner } from "@/components/ui/Banner";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { ProvideInformationButton, ReportAccessButton } from "@/components/sme/ApplicationActions";
+import { ReportAccessButton, ProvideDocumentButton } from "@/components/sme/ApplicationActions";
 import { formatNaira, formatDateTime, formatTime, formatDate, formatWindow } from "@/lib/format";
 import { EVENT_LABELS } from "@/lib/domain/labels";
 
@@ -20,7 +20,7 @@ export default async function SmeApplicationDetail({ params, searchParams }: { p
   const user = await requireSmeUser();
   const data = await loadSmeApplication(user, id);
   if (!data) return <Card><EmptyState icon={FileText} title="Application not found" action={<Link href="/sme"><Button size="sm">Back to overview</Button></Link>} /></Card>;
-  const { app, offer, plan, events } = data;
+  const { app, offer, plan, events, documents } = data;
 
   const reviewState: StepState = app.status === "submitted" ? "pending" : app.status === "under_review" || app.status === "additional_information" ? "in_progress" : "completed";
   const decisionState: StepState = app.decision ? (app.decision.outcome === "approved" ? "completed" : "declined") : "pending";
@@ -40,7 +40,23 @@ export default async function SmeApplicationDetail({ params, searchParams }: { p
         <div className="mb-6"><Banner tone="success" title={`Application submitted — ${app.reference}`}>Status: Under review. The bank has been notified, and every access to your financial profile will appear in the activity log below.</Banner></div>
       )}
       {app.status === "additional_information" && app.informationRequest && !app.informationRequest.respondedAt && (
-        <div className="mb-6"><Banner tone="warning" title="Additional information requested" action={<ProvideInformationButton applicationId={app.id} />}>{app.informationRequest.requestedByName} requested: {app.informationRequest.items.join(", ")}.{app.informationRequest.message ? ` “${app.informationRequest.message}”` : ""}</Banner></div>
+        <div className="mb-6">
+          <Card>
+            <CardHeader title="Additional information requested" action={<Chip family="warning">{documents.filter((d) => d.status === "requested").length} outstanding</Chip>} />
+            {app.informationRequest.message && <p className="text-[13.5px] text-ink-2 mb-4">&ldquo;{app.informationRequest.message}&rdquo; — {app.informationRequest.requestedByName}</p>}
+            <ul className="divide-y divide-line-subtle">
+              {documents.map((d) => (
+                <li key={d.id} className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0">
+                  <div className="min-w-0">
+                    <div className="text-[14px] text-ink">{d.type}</div>
+                    {d.note && <div className="text-[12.5px] text-ink-3 mt-0.5">{d.note}</div>}
+                  </div>
+                  {d.status === "requested" ? <ProvideDocumentButton documentId={d.id} type={d.type} /> : <Chip family="success">Provided</Chip>}
+                </li>
+              ))}
+            </ul>
+          </Card>
+        </div>
       )}
       {app.status === "rejected" && app.decision && <div className="mb-6"><Banner tone="danger" title="Application not approved">{app.decision.note || "The bank did not approve this application on the current financial evidence."}</Banner></div>}
       {app.status === "disbursed" && app.disbursement && <div className="mb-6"><Banner tone="success" title={`Disbursement confirmed — ${formatNaira(app.amount)}`}>Paid to {app.disbursement.institutionName} account {app.disbursement.destinationMasked} on {formatDateTime(app.disbursement.confirmedAt!)}. Reference {app.disbursement.reference}.</Banner></div>}

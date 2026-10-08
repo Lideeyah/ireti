@@ -22,7 +22,9 @@ export default async function SmeLayout({ children }: { children: React.ReactNod
         { href: "/sme/credit-profile", label: "Credit profile", icon: "Gauge" },
         { href: "/sme/application", label: "Application", icon: "FileText" },
         { href: "/sme/repayments", label: "Repayments", icon: "CalendarClock" },
-        { href: "/sme/accounts", label: "Connected accounts", icon: "Landmark" },
+        { href: "/sme/accounts", label: "Accounts", icon: "Landmark" },
+        { href: "/sme/transactions", label: "Transactions", icon: "Receipt" },
+        { href: "/sme/business", label: "Business", icon: "Building2" },
         { href: "/sme/activity", label: "Data access", icon: "Activity" },
       ]}
     >

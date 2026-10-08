@@ -2,11 +2,12 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Flag } from "lucide-react";
-import { provideInformationAction, reportAccessAction, retryOwnRepaymentAction, disconnectInstitutionAction, refreshConnectionAction } from "@/app/actions";
+import { provideInformationAction, reportAccessAction, retryOwnRepaymentAction, payInstalmentAction, provideDocumentAction } from "@/app/actions";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { Banner } from "@/components/ui/Banner";
 import { Divider } from "@/components/ui/Card";
+import { Label, Textarea, FieldError } from "@/components/ui/Input";
 
 export function ProvideInformationButton({ applicationId }: { applicationId: string }) {
   const [pending, start] = useTransition();
@@ -49,13 +50,40 @@ export function RetryRepaymentButton({ repaymentId, variant = "secondary", label
   );
 }
 
-export function ConnectionButtons({ connectionId, status }: { connectionId: string; status: string }) {
+/** Pays a scheduled instalment early, or settles one the mandate could not collect. */
+export function PayInstalmentButton({ repaymentId, label = "Pay now", variant = "secondary" }: { repaymentId: string; label?: string; variant?: "primary" | "secondary" }) {
+  const [pending, start] = useTransition();
+  const [error, setError] = useState<string>();
+  const router = useRouter();
+  return (
+    <span className="inline-flex items-center gap-2">
+      <Button size="sm" variant={variant} loading={pending} onClick={() => start(async () => { const r = await payInstalmentAction(repaymentId); if (!r.ok) setError(r.error); router.refresh(); })}>{label}</Button>
+      {error && <span className="text-[12px] text-danger">{error}</span>}
+    </span>
+  );
+}
+
+/** Supplies one requested document and records it against the application. */
+export function ProvideDocumentButton({ documentId, type }: { documentId: string; type: string }) {
+  const [open, setOpen] = useState(false);
+  const [note, setNote] = useState("");
+  const [error, setError] = useState<string>();
   const [pending, start] = useTransition();
   const router = useRouter();
   return (
-    <div className="flex items-center gap-2">
-      {status === "connected" && <Button size="sm" loading={pending} onClick={() => start(async () => { await refreshConnectionAction(connectionId); router.refresh(); })}>Refresh</Button>}
-      <Button size="sm" variant="ghost" disabled={pending} onClick={() => start(async () => { await disconnectInstitutionAction(connectionId); router.refresh(); })}>Disconnect</Button>
-    </div>
+    <>
+      <Button size="sm" variant="primary" onClick={() => setOpen(true)}>Provide</Button>
+      <Modal
+        open={open}
+        onClose={() => setOpen(false)}
+        title={`Provide ${type.toLowerCase()}`}
+        footer={<><Button onClick={() => setOpen(false)}>Cancel</Button><Button variant="primary" loading={pending} onClick={() => start(async () => { const r = await provideDocumentAction(documentId, note); if (!r.ok) { setError(r.error); return; } setOpen(false); setNote(""); router.refresh(); })}>Mark as provided</Button></>}
+      >
+        <p className="text-[13.5px] text-ink-2 mb-4">Confirm you have sent this document to your relationship manager, and add any context the reviewer should see.</p>
+        <Label>Note to the reviewer (optional)</Label>
+        <Textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="For example, the period the statement covers." />
+        <FieldError>{error}</FieldError>
+      </Modal>
+    </>
   );
 }

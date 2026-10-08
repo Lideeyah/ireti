@@ -50,3 +50,18 @@ export const INFORMATION_ITEMS = ["Updated financial statement", "Proof of busin
 
 export const BUSINESS_TYPES = ["Private limited company", "Enterprise", "Partnership", "Public limited company", "Cooperative"];
 export const INDUSTRIES = ["Food distribution", "Agriculture", "Agro-processing", "Manufacturing", "Retail", "Wholesale trade", "Logistics", "Construction supplies", "Hospitality", "Healthcare", "Education", "Professional services", "Technology", "Other"];
+
+export const CATEGORY_LABELS: Record<string, string> = {
+  sales: "Sales",
+  distributor_settlement: "Settlement",
+  contract_payment: "Contract",
+  supplier_payment: "Supplier",
+  payroll: "Payroll",
+  rent: "Rent",
+  utilities: "Utilities",
+  logistics: "Logistics",
+  loan_repayment: "Loan repayment",
+  equipment: "Equipment",
+  tax: "Tax",
+  other: "Other",
+};

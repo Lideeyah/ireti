@@ -86,6 +86,15 @@ export async function provideInformationAction(applicationId: string) {
 export async function reportAccessAction(applicationId: string) {
   return run(async () => sme.reportAccess(await auth.requireSmeUser(), applicationId), ["/sme", "/bank"]);
 }
+export async function setDisbursementAccountAction(accountId: string) {
+  return run(async () => sme.setDisbursementAccount(await auth.requireSmeUser(), accountId), ["/sme"]);
+}
+export async function payInstalmentAction(repaymentId: string) {
+  return run(async () => sme.payInstalment(await auth.requireSmeUser(), repaymentId), ["/sme", "/bank"]);
+}
+export async function provideDocumentAction(documentId: string, note: string) {
+  return run(async () => sme.provideDocument(await auth.requireSmeUser(), documentId, note), ["/sme", "/bank"]);
+}
 
 // ---- Bank ------------------------------------------------------------------
 
@@ -120,6 +129,9 @@ export async function retryOwnRepaymentAction(repaymentId: string) {
     if (rep.status !== "failed") throw new ServiceError("Only a failed instalment can be retried.");
     return bank.processRepayment(user, repaymentId);
   }, ["/sme", "/bank"]);
+}
+export async function assignReviewerAction(applicationId: string, reviewerId: string) {
+  return run(async () => bank.assignReviewer(await auth.requireBankUser("bank:review_application"), applicationId, reviewerId), ["/bank"]);
 }
 export async function assignCaseAction(caseId: string, assigneeName: string) {
   return run(async () => risk.assignCase(await auth.requireBankUser("bank:manage_cases"), caseId, assigneeName), ["/bank"]);
