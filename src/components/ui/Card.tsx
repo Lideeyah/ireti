@@ -6,11 +6,11 @@ export function Card({ children, className, padded = true }: { children: React.R
 
 export function CardHeader({ title, eyebrow, action, description, className }: { title?: React.ReactNode; eyebrow?: string; action?: React.ReactNode; description?: React.ReactNode; className?: string }) {
   return (
-    <div className={clsx("flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-6 mb-5", className)}>
+    <div className={clsx("flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-6 mb-5", className)}>
       <div className="min-w-0">
-        {eyebrow && <div className="eyebrow mb-1.5">{eyebrow}</div>}
-        {title && <h2 className="text-[16px] font-semibold text-ink leading-snug">{title}</h2>}
-        {description && <p className="text-[13.5px] text-ink-2 mt-1.5 leading-relaxed max-w-[720px]">{description}</p>}
+        {eyebrow && !title && <div className="eyebrow">{eyebrow}</div>}
+        {title && <h2 className="text-[15px] font-semibold text-ink leading-snug">{title}</h2>}
+        {description && <p className="text-[13px] text-ink-3 mt-1 max-w-[640px]">{description}</p>}
       </div>
       {action && <div className="shrink-0 flex items-center gap-2">{action}</div>}
     </div>
@@ -20,11 +20,10 @@ export function CardHeader({ title, eyebrow, action, description, className }: {
 /** Header strip for list cards (table or list below, no padding on the card). */
 export function ListHeader({ title, eyebrow, description, action }: { title?: React.ReactNode; eyebrow?: string; description?: React.ReactNode; action?: React.ReactNode }) {
   return (
-    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 px-6 py-4 border-b border-line-subtle">
-      <div className="min-w-0">
-        {eyebrow && <div className="eyebrow mb-1">{eyebrow}</div>}
-        {title && <h2 className="text-[15px] font-semibold text-ink">{title}</h2>}
-        {description && <p className="text-[13px] text-ink-2 mt-1">{description}</p>}
+    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-6 h-14 border-b border-line-subtle">
+      <div className="min-w-0 flex items-baseline gap-3">
+        {title ? <h2 className="text-[15px] font-semibold text-ink">{title}</h2> : eyebrow ? <h2 className="text-[15px] font-semibold text-ink">{eyebrow}</h2> : null}
+        {description && <span className="text-[13px] text-ink-3 truncate">{description}</span>}
       </div>
       {action && <div className="shrink-0 flex items-center gap-2">{action}</div>}
     </div>

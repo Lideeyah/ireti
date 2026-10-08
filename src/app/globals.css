@@ -71,6 +71,7 @@
   --chart-other: #5A6B82;
 
   --neutral-700: #3C4555;
+  --neutral-800: #2A3240;
   --neutral-900: #1B2230;
 }
 
@@ -132,7 +133,10 @@ html, body {
   text-transform: uppercase;
   font-weight: 600;
   color: var(--text-muted);
+  line-height: 1.2;
 }
+
+h1, h2, h3 { letter-spacing: -0.01em; }
 
 :focus-visible {
   outline: 2px solid var(--focus-ring);

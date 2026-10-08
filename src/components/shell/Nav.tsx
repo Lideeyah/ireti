@@ -24,17 +24,17 @@ function useActive() {
 export function SidebarNav({ items }: { items: NavItem[] }) {
   const isActive = useActive();
   return (
-    <nav className="flex-1 overflow-y-auto py-4 px-3">
-      <ul className="space-y-0.5">
+    <nav className="flex-1 overflow-y-auto px-3">
+      <ul className="space-y-px">
         {items.map((item) => {
           const active = isActive(item);
           const Icon = NAV_ICONS[item.icon];
           return (
             <li key={item.href}>
-              <Link href={item.href} className={clsx("flex items-center gap-3 h-9 px-3 rounded-[6px] text-[14px] transition-colors", active ? "bg-selected text-info font-medium" : "text-ink-2 hover:bg-hover hover:text-ink")}>
-                <Icon size={16} className={active ? "text-primary" : "text-ink-3"} />
+              <Link href={item.href} className={clsx("flex items-center gap-3 h-9 px-2.5 rounded-[6px] text-[13.5px] transition-colors", active ? "bg-white/10 text-white font-medium" : "text-white/65 hover:bg-white/[0.06] hover:text-white")}>
+                <Icon size={16} className={active ? "text-white" : "text-white/45"} strokeWidth={1.75} />
                 <span className="flex-1 truncate">{item.label}</span>
-                {item.badge ? <span className="tnum text-[11px] font-semibold px-1.5 h-[18px] rounded-[4px] bg-info-bg text-info inline-flex items-center">{item.badge}</span> : null}
+                {item.badge ? <span className={clsx("tnum text-[11px] font-semibold min-w-[20px] h-5 px-1.5 rounded-full inline-flex items-center justify-center", active ? "bg-white text-[var(--neutral-900)]" : "bg-white/15 text-white")}>{item.badge}</span> : null}
               </Link>
             </li>
           );
