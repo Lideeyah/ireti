@@ -11,7 +11,7 @@ npm run db:reset         # creates prisma/dev.db and seeds the demo bank, staff 
 npm run dev
 ```
 
-Open http://localhost:3100.
+Open http://localhost:4300.
 
 - Businesses create an account at `/sign-up`, then complete onboarding (business details, BVN verification, account connection, analysis, credit profile) and apply.
 - Bank staff sign in at `/sign-in`. In demo mode (`DEMO_MODE=true`) the sign-in page lists the seeded staff accounts; the shared demo password is `ireti-demo-2026`.

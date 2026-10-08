@@ -1,6 +1,6 @@
 # Demo script — end to end
 
-Open `http://localhost:3100`. If the demo has been used before, sign in as the administrator and use **Administration → Reset demo environment**, or run `npm run db:reset`.
+Open `http://localhost:4300`. If the demo has been used before, sign in as the administrator and use **Administration → Reset demo environment**, or run `npm run db:reset`.
 
 ## Accounts
 
