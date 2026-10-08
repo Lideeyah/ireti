@@ -22,6 +22,22 @@ import type { SessionUser } from "./auth";
 
 const actorOf = (u: SessionUser): Actor => ({ id: u.id, name: u.name, role: u.role });
 
+/**
+ * An assessment is stale once the set of connected accounts changes, because the
+ * consolidated profile it was built from no longer describes the business.
+ */
+export async function isAssessmentStale(businessId: string, generatedAt: Date) {
+  const [connectedCount, changedSince] = await Promise.all([
+    prisma.bankConnection.count({ where: { businessId, status: "connected" } }),
+    prisma.bankConnection.count({ where: { businessId, status: "connected", connectedAt: { gt: generatedAt } } }),
+  ]);
+  if (changedSince > 0) return true;
+  const profile = await prisma.financialProfile.findFirst({ where: { businessId }, orderBy: { generatedAt: "desc" } });
+  if (!profile) return true;
+  const data = JSON.parse(profile.data) as { institutionsConnected?: number };
+  return (data.institutionsConnected ?? 0) !== connectedCount;
+}
+
 export async function getOwnBusiness(user: SessionUser) {
   const row = await prisma.business.findUnique({ where: { organisationId: user.organisationId } });
   return row ? toBusiness(row) : null;
@@ -121,10 +137,89 @@ export async function connectInstitution(user: SessionUser, institutionId: strin
 }
 
 export async function disconnectInstitution(user: SessionUser, connectionId: string) {
-  const conn = await prisma.bankConnection.findUnique({ where: { id: connectionId }, include: { business: true } });
+  const conn = await prisma.bankConnection.findUnique({ where: { id: connectionId }, include: { business: true, accounts: true } });
   if (!conn || conn.business.organisationId !== user.organisationId) throw new ServiceError("Connection not found", 404);
+
+  // A live facility depends on its connected accounts for collection, so the last
+  // connection and the designated account cannot be removed while one is running.
+  const livePlan = await prisma.repaymentPlan.findFirst({ where: { businessId: conn.businessId, health: { not: "completed" } } });
+  if (livePlan) {
+    const remaining = await prisma.bankConnection.count({ where: { businessId: conn.businessId, status: "connected", id: { not: connectionId } } });
+    if (remaining === 0) throw new ServiceError("At least one connected account must remain while a facility is being repaid.");
+    if (conn.accounts.some((a) => a.id === conn.business.disbursementAccountId)) {
+      throw new ServiceError("This account carries the repayment mandate. Designate another account first.");
+    }
+  }
+
   await demoBankConnectionService.disconnectBank(connectionId);
-  await prisma.bankConnection.delete({ where: { id: connectionId } });
+  await prisma.$transaction(async (tx) => {
+    if (conn.accounts.some((a) => a.id === conn.business.disbursementAccountId)) {
+      await tx.business.update({ where: { id: conn.businessId }, data: { disbursementAccountId: null } });
+    }
+    await tx.bankConnection.delete({ where: { id: connectionId } });
+    await recordAudit(tx, { type: "CONSENT_RECORDED", actor: actorOf(user), businessId: conn.businessId, resource: `Consent withdrawn — ${conn.institutionName}`, metadata: { institution: conn.institutionName, action: "disconnected" }, customerVisible: true });
+  });
+}
+
+/**
+ * Designates the account that receives disbursement and carries the repayment mandate.
+ * Locked once a facility is live, because the mandate is held against that account.
+ */
+export async function setDisbursementAccount(user: SessionUser, accountId: string) {
+  const account = await prisma.bankAccount.findUnique({ where: { id: accountId }, include: { business: true, connection: true } });
+  if (!account || account.business.organisationId !== user.organisationId) throw new ServiceError("Account not found", 404);
+  if (account.connection.status !== "connected") throw new ServiceError("Connect this account before designating it.");
+  const livePlan = await prisma.repaymentPlan.findFirst({ where: { businessId: account.businessId, health: { not: "completed" } } });
+  if (livePlan) throw new ServiceError("The repayment mandate is held against the current account while a facility is live. Contact the bank to change it.");
+  await prisma.$transaction(async (tx) => {
+    await tx.business.update({ where: { id: account.businessId }, data: { disbursementAccountId: accountId } });
+    await recordAudit(tx, { type: "CONSENT_RECORDED", actor: actorOf(user), businessId: account.businessId, resource: "Disbursement account designated", metadata: { institution: account.institutionName, account: account.accountNumberMasked }, customerVisible: true });
+  });
+}
+
+/** Resolves the account a disbursement should pay into: the designated one, else the largest. */
+export async function resolveDisbursementAccount(businessId: string) {
+  const business = await prisma.business.findUnique({ where: { id: businessId } });
+  if (business?.disbursementAccountId) {
+    const designated = await prisma.bankAccount.findUnique({ where: { id: business.disbursementAccountId }, include: { connection: true } });
+    if (designated && designated.connection.status === "connected") return designated;
+  }
+  return prisma.bankAccount.findFirst({ where: { businessId, connection: { status: "connected" } }, orderBy: { balance: "desc" }, include: { connection: true } });
+}
+
+/** Records an early or manual payment of a scheduled instalment, initiated by the business. */
+export async function payInstalment(user: SessionUser, repaymentId: string) {
+  const rep = await prisma.repayment.findUnique({ where: { id: repaymentId }, include: { plan: { include: { business: true } } } });
+  if (!rep || rep.plan.business.organisationId !== user.organisationId) throw new ServiceError("Instalment not found", 404);
+  if (rep.status === "paid") throw new ServiceError("This instalment is already paid.");
+  if (rep.status === "processing") throw new ServiceError("This instalment is already being processed.");
+  const { processRepayment } = await import("./bank");
+  return processRepayment(user, repaymentId);
+}
+
+/** Records the applicant supplying one requested document. */
+export async function provideDocument(user: SessionUser, documentId: string, note: string) {
+  const doc = await prisma.document.findUnique({ where: { id: documentId }, include: { business: true, application: true } });
+  if (!doc || doc.business.organisationId !== user.organisationId) throw new ServiceError("Document not found", 404);
+  if (doc.status !== "requested") throw new ServiceError("This document has already been provided.");
+  const now = new Date();
+  await prisma.$transaction(async (tx) => {
+    await tx.document.update({ where: { id: documentId }, data: { status: "provided", providedAt: now, note: note.trim() || null } });
+    await recordAudit(tx, { type: "INFORMATION_PROVIDED", actor: actorOf(user), businessId: doc.businessId, applicationId: doc.applicationId, applicationRef: doc.application?.reference, resource: doc.type, metadata: { document: doc.type }, customerVisible: true });
+    // The application returns to review only when nothing further is outstanding.
+    if (doc.applicationId) {
+      const outstanding = await tx.document.count({ where: { applicationId: doc.applicationId, status: "requested" } });
+      if (outstanding === 0) {
+        const app = await tx.loanApplication.findUnique({ where: { id: doc.applicationId } });
+        const req = app?.informationRequest ? JSON.parse(app.informationRequest) : null;
+        await tx.loanApplication.update({
+          where: { id: doc.applicationId },
+          data: { status: "under_review", informationRequest: req ? JSON.stringify({ ...req, respondedAt: now.toISOString() }) : null },
+        });
+        await notify(tx, { audience: "bank", type: "information_provided", title: "Information provided", body: `${doc.application?.reference}: all requested documents have been provided.`, href: `/bank/applications/${doc.applicationId}` });
+      }
+    }
+  });
 }
 
 export async function refreshConnection(user: SessionUser, connectionId: string) {
@@ -165,6 +260,9 @@ export async function submitApplication(user: SessionUser, input: { amount: numb
   const policy = await getPolicy();
   const active = await prisma.loanApplication.findFirst({ where: { businessId: business.id, status: { not: "rejected" } } });
   if (active) throw new ServiceError("An application is already in progress.");
+  if (await isAssessmentStale(business.id, assessmentRow.generatedAt)) {
+    throw new ServiceError("Your connected accounts changed after this assessment. Re-run the analysis before applying.");
+  }
   if (!(input.amount >= policy.minLoanAmount)) throw new ServiceError(`Minimum amount is ${formatNaira(policy.minLoanAmount)}.`);
   if (input.amount > assessment.eligibleAmount) throw new ServiceError("Amount exceeds your eligibility.");
   if (!policy.allowedTenors.includes(input.tenorMonths)) throw new ServiceError("Tenor not permitted by policy.");

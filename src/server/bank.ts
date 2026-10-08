@@ -55,7 +55,8 @@ export async function approveApplication(user: SessionUser, applicationId: strin
   const { app, offer, business } = await loadApp(applicationId);
   if (!["submitted", "under_review", "additional_information"].includes(app.status)) throw new ServiceError("This application cannot be approved from its current state.");
   await delay(1600);
-  const primary = await prisma.bankAccount.findFirst({ where: { businessId: business.id }, orderBy: { balance: "desc" } });
+  const { resolveDisbursementAccount } = await import("./sme");
+  const primary = await resolveDisbursementAccount(business.id);
   if (!primary) throw new ServiceError("The applicant has no connected account to disburse to.");
   const disbursement: DisbursementRecord = { status: "pending", destinationAccountId: primary.id, destinationMasked: primary.accountNumberMasked, institutionName: primary.institutionName, attempts: 0 };
   await prisma.$transaction(async (tx) => {
@@ -121,13 +122,23 @@ export async function escalateDisbursement(user: SessionUser, applicationId: str
 }
 
 /** Processes a scheduled or failed instalment through the (demo) collections adapter. */
-export async function processRepayment(actorUser: SessionUser | null, repaymentId: string, force?: "success" | "failure"): Promise<"paid" | "failed"> {
+export async function processRepayment(
+  actorUser: SessionUser | null,
+  repaymentId: string,
+  force?: "success" | "failure",
+  initiatedBy: "debit" | "customer" = "debit",
+): Promise<"paid" | "failed"> {
   const rep = await prisma.repayment.findUnique({ where: { id: repaymentId }, include: { plan: { include: { application: { include: { business: true } } } } } });
   if (!rep) throw new ServiceError("Repayment not found", 404);
   if (rep.status === "paid") throw new ServiceError("This instalment is already paid.");
   if (rep.status === "processing") throw new ServiceError("This instalment is already being processed.");
   const app = rep.plan.application;
   const policy = await getPolicy();
+  // A direct-debit mandate may only be presented a configured number of times; a
+  // customer pushing funds is not a debit attempt and is never blocked by that cap.
+  if (initiatedBy === "debit" && rep.attempts >= policy.repaymentRules.maxDebitRetries + 1) {
+    throw new ServiceError(`The mandate has been presented ${rep.attempts} times, the configured limit. Escalate to collections.`);
+  }
   await prisma.repayment.update({ where: { id: repaymentId }, data: { status: "processing", attempts: { increment: 1 } } });
   const outcome = await demoRepaymentService.processRepayment({ repaymentId, amount: rep.amount, forceOutcome: force });
   const attempts = rep.attempts + 1;
@@ -175,6 +186,50 @@ export async function updatePolicy(user: SessionUser, patch: Partial<BankPolicy>
     await recordAudit(tx, { type: "POLICY_UPDATED", actor: actorOf(user), resource: "Lending policy", metadata: { version: next.version, previousVersion: prev.version, fieldsChanged: changed.join(", ") || "none" } });
   });
   return next;
+}
+
+/**
+ * Assigns the officer responsible for a review. Recorded so the audit trail shows who
+ * held the file at the time of each decision.
+ */
+export async function assignReviewer(user: SessionUser, applicationId: string, reviewerId: string) {
+  const { app } = await loadApp(applicationId);
+  if (["disbursed", "rejected"].includes(app.status)) throw new ServiceError("This application is closed.");
+  const reviewer = await prisma.user.findUnique({ where: { id: reviewerId }, include: { organisation: true } });
+  if (!reviewer || reviewer.organisation.type !== "bank") throw new ServiceError("Reviewer not found", 404);
+  await prisma.$transaction(async (tx) => {
+    await tx.loanApplication.update({ where: { id: applicationId }, data: { reviewerId: reviewer.id, reviewerName: reviewer.name } });
+    await recordAudit(tx, { type: "APPLICATION_REVIEW_STARTED", actor: actorOf(user), businessId: app.businessId, applicationId, applicationRef: app.reference, resource: "Application", metadata: { assignedTo: reviewer.name }, customerVisible: true });
+  });
+}
+
+/**
+ * Marks instalments unpaid beyond the configured grace period as overdue and opens a
+ * case for each. Idempotent, and run whenever portfolio or facility data is read so the
+ * portfolio reflects elapsed time without a scheduler.
+ */
+export async function syncOverdueRepayments() {
+  const policy = await getPolicy();
+  const cutoff = new Date(Date.now() - policy.repaymentRules.graceDays * 86_400_000);
+  const due = await prisma.repayment.findMany({
+    where: { status: "scheduled", dueDate: { lt: cutoff } },
+    include: { plan: { include: { application: { include: { business: true } } } } },
+  });
+  if (due.length === 0) return 0;
+  for (const rep of due) {
+    const app = rep.plan.application;
+    await prisma.$transaction(async (tx) => {
+      await tx.repayment.update({ where: { id: rep.id }, data: { status: "overdue" } });
+      await tx.repaymentPlan.update({ where: { id: rep.planId }, data: { health: "at_risk" } });
+      await recordAudit(tx, { type: "REPAYMENT_FAILED", actor: SYSTEM_ACTOR, businessId: rep.businessId, applicationId: app.id, applicationRef: app.reference, resource: "Repayment", metadata: { sequence: rep.sequence, amount: rep.amount, reason: "Missed repayment", graceDays: policy.repaymentRules.graceDays }, customerVisible: true });
+      const existing = await tx.case.findFirst({ where: { applicationId: app.id, status: { not: "resolved" }, trigger: "Missed repayment" } });
+      if (!existing) {
+        await openCase(tx, { businessId: rep.businessId, businessName: app.business.name, applicationId: app.id, applicationRef: app.reference, type: "missed_repayment", severity: "High", trigger: "Missed repayment", description: `Instalment ${rep.sequence} of ${formatNaira(rep.amount)} remains unpaid more than ${policy.repaymentRules.graceDays} days after its window closed.`, owner: "Credit Operations", actor: SYSTEM_ACTOR });
+      }
+      await notify(tx, { audience: "sme", businessId: rep.businessId, type: "repayment_failed", title: "Repayment overdue", body: `Instalment ${rep.sequence} of ${formatNaira(rep.amount)} is overdue.`, href: "/sme/repayments" });
+    });
+  }
+  return due.length;
 }
 
 export async function markNotificationsRead(user: SessionUser) {

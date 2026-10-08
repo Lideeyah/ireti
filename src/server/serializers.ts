@@ -49,6 +49,7 @@ export const toBusiness = (r: Row<"Business">): Business => ({
   declaredMonthlyRevenue: r.declaredMonthlyRevenue,
   identityVerified: r.identityVerified,
   identityVerifiedAt: iso(r.identityVerifiedAt),
+  disbursementAccountId: r.disbursementAccountId ?? undefined,
   createdAt: r.createdAt.toISOString(),
 });
 
@@ -106,6 +107,13 @@ export const toAssessment = (r: Row<"CreditAssessment">): CreditAssessment => {
     recommendation: data.recommendation ?? { action: "review", headline: "", confidence: "Low", reasoning: [] },
     policyChecks: data.policyChecks ?? [],
     policyPassed: data.policyPassed ?? false,
+    freeCashFlow: data.freeCashFlow ?? 0,
+    maxInstalment: data.maxInstalment ?? 0,
+    projectedDscr: data.projectedDscr ?? 0,
+    capacityCeiling: data.capacityCeiling ?? r.eligibleAmount,
+    affordabilityCeiling: data.affordabilityCeiling ?? r.eligibleAmount,
+    bindingConstraint: data.bindingConstraint ?? "capacity",
+    constraintNote: data.constraintNote ?? "",
   };
 };
 
@@ -253,6 +261,7 @@ export const toDocument = (r: Row<"Document">): DocumentRecord => ({
   type: r.type,
   name: r.name,
   status: r.status as DocumentRecord["status"],
+  note: r.note ?? undefined,
   providedAt: iso(r.providedAt),
 });
 

@@ -1,26 +1,31 @@
 import "server-only";
 import { prisma } from "./db";
 import { getPolicy, verifyLedger } from "./core";
+import { syncOverdueRepayments } from "./bank";
+import { isAssessmentStale } from "./sme";
 import {
   toAccount, toApplication, toAssessment, toAuditEvent, toBusiness, toCase, toConnection, toDocument,
-  toNotification, toOffer, toPlan, toProfile, toRepayment, toRiskEvent,
+  toNotification, toOffer, toPlan, toProfile, toRepayment, toRiskEvent, toTransactionRows,
 } from "./serializers";
 import type { SessionUser } from "./auth";
 
 /** Read models for pages. Each loader scopes data to the caller. */
 
 export async function loadSmeBundle(user: SessionUser) {
+  await syncOverdueRepayments();
   const business = await prisma.business.findUnique({
     where: { organisationId: user.organisationId },
     include: { connections: true, accounts: true, applications: { include: { offer: true, plan: { include: { repayments: { orderBy: { sequence: "asc" } } } } }, orderBy: { submittedAt: "desc" } } },
   });
-  if (!business) return { business: null, connections: [], accounts: [], profile: undefined, assessment: undefined, applications: [], activeApplication: undefined, plan: undefined, repayments: [], offer: undefined, activity: [], policy: await getPolicy() };
-  const [profileRow, assessmentRow, activity, policy] = await Promise.all([
+  if (!business) return { business: null, connections: [], accounts: [], profile: undefined, assessment: undefined, applications: [], activeApplication: undefined, plan: undefined, repayments: [], offer: undefined, activity: [], documents: [], assessmentStale: false, policy: await getPolicy() };
+  const [profileRow, assessmentRow, activity, documents, policy] = await Promise.all([
     prisma.financialProfile.findFirst({ where: { businessId: business.id }, orderBy: { generatedAt: "desc" } }),
     prisma.creditAssessment.findFirst({ where: { businessId: business.id }, orderBy: { generatedAt: "desc" } }),
     prisma.auditEvent.findMany({ where: { businessId: business.id, customerVisible: true }, orderBy: { seq: "desc" }, take: 200 }),
+    prisma.document.findMany({ where: { businessId: business.id }, orderBy: { status: "asc" } }),
     getPolicy(),
   ]);
+  const assessmentStale = assessmentRow ? await isAssessmentStale(business.id, assessmentRow.generatedAt) : false;
   const applications = business.applications.map(toApplication);
   const activeRow = business.applications.find((a) => a.status !== "rejected") ?? business.applications[0];
   return {
@@ -35,15 +40,42 @@ export async function loadSmeBundle(user: SessionUser) {
     repayments: activeRow?.plan ? activeRow.plan.repayments.map(toRepayment) : [],
     offer: activeRow ? toOffer(activeRow.offer) : undefined,
     activity: activity.map(toAuditEvent),
+    documents: documents.map(toDocument),
+    assessmentStale,
     policy,
   };
 }
 
+/** Consolidated transaction ledger for the signed-in business, newest first. */
+export async function loadTransactions(user: SessionUser, opts: { accountId?: string; direction?: "in" | "out"; query?: string; take?: number } = {}) {
+  const business = await prisma.business.findUnique({ where: { organisationId: user.organisationId }, include: { accounts: true } });
+  if (!business) return { transactions: [], accounts: [], total: 0, inflow: 0, outflow: 0 };
+  const where = {
+    businessId: business.id,
+    ...(opts.accountId ? { accountId: opts.accountId } : {}),
+    ...(opts.direction === "in" ? { amount: { gt: 0 } } : opts.direction === "out" ? { amount: { lt: 0 } } : {}),
+    ...(opts.query ? { OR: [{ counterparty: { contains: opts.query } }, { narration: { contains: opts.query } }] } : {}),
+  };
+  const [rows, total, sums] = await Promise.all([
+    prisma.transaction.findMany({ where, orderBy: { date: "desc" }, take: opts.take ?? 150 }),
+    prisma.transaction.count({ where }),
+    prisma.transaction.findMany({ where, select: { amount: true } }),
+  ]);
+  const accountsById = new Map(business.accounts.map((a) => [a.id, a]));
+  return {
+    transactions: toTransactionRows(rows).map((t) => ({ ...t, institutionName: accountsById.get(t.accountId)?.institutionName ?? "", accountMasked: accountsById.get(t.accountId)?.accountNumberMasked ?? "" })),
+    accounts: business.accounts.map(toAccount),
+    total,
+    inflow: sums.filter((x) => x.amount > 0).reduce((a, x) => a + x.amount, 0),
+    outflow: sums.filter((x) => x.amount < 0).reduce((a, x) => a - x.amount, 0),
+  };
+}
+
 export async function loadSmeApplication(user: SessionUser, applicationId: string) {
-  const row = await prisma.loanApplication.findUnique({ where: { id: applicationId }, include: { business: true, offer: true, plan: true } });
+  const row = await prisma.loanApplication.findUnique({ where: { id: applicationId }, include: { business: true, offer: true, plan: true, documents: true } });
   if (!row || row.business.organisationId !== user.organisationId) return null;
   const events = await prisma.auditEvent.findMany({ where: { applicationId, customerVisible: true }, orderBy: { seq: "desc" } });
-  return { app: toApplication(row), offer: toOffer(row.offer), plan: row.plan ? toPlan(row.plan) : undefined, events: events.map(toAuditEvent) };
+  return { app: toApplication(row), offer: toOffer(row.offer), plan: row.plan ? toPlan(row.plan) : undefined, events: events.map(toAuditEvent), documents: row.documents.map(toDocument) };
 }
 
 export async function loadNotifications(user: SessionUser) {
@@ -84,7 +116,11 @@ export async function loadReviewBundle(applicationId: string) {
     include: { business: { include: { connections: true, accounts: true } }, assessment: { include: { profile: true } }, offer: true, plan: { include: { repayments: { orderBy: { sequence: "asc" } } } }, documents: true, cases: true },
   });
   if (!row) return null;
-  const [events, policy] = await Promise.all([prisma.auditEvent.findMany({ where: { applicationId }, orderBy: { seq: "desc" } }), getPolicy()]);
+  const [events, policy, transactions] = await Promise.all([
+    prisma.auditEvent.findMany({ where: { applicationId }, orderBy: { seq: "desc" } }),
+    getPolicy(),
+    prisma.transaction.findMany({ where: { businessId: row.businessId }, orderBy: { date: "desc" }, take: 60 }),
+  ]);
   return {
     app: toApplication(row),
     business: toBusiness(row.business),
@@ -98,11 +134,13 @@ export async function loadReviewBundle(applicationId: string) {
     documents: row.documents.map(toDocument),
     cases: row.cases.map(toCase),
     events: events.map(toAuditEvent),
+    transactions: toTransactionRows(transactions),
     policy,
   };
 }
 
 export async function loadMonitoring() {
+  await syncOverdueRepayments();
   const [plans, cases, policy] = await Promise.all([
     prisma.repaymentPlan.findMany({ where: { health: { not: "completed" } }, include: { business: true, application: true, repayments: { orderBy: { sequence: "asc" } } } }),
     prisma.case.findMany({ include: { business: true }, orderBy: { createdAt: "desc" } }),
