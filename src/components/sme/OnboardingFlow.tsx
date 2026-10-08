@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowRight, CheckCircle2, RefreshCw, ShieldCheck } from "lucide-react";
@@ -37,26 +37,38 @@ export function OnboardingFlow(props: Props) {
   const derived = !business ? 0 : !business.identityVerified ? 1 : connected === 0 ? 2 : !assessment ? 2 : 4;
   const [step, setStep] = useState(derived);
   const [analysing, setAnalysing] = useState(false);
+  // Set when the applicant deliberately steps back, so completing work does not yank
+  // them forward again. Otherwise the screen follows the data as each step completes.
+  const steppedBack = useRef(false);
   useEffect(() => {
-    // Never show a step the data does not support; auto-advance only from Business to Identity.
-    if (!analysing) setStep((s) => (s > derived ? derived : s === 0 && derived >= 1 ? 1 : s));
+    if (analysing) return;
+    setStep((s) => {
+      if (s > derived) return derived;
+      if (steppedBack.current) return s;
+      return derived;
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [derived]);
+
+  const goTo = (next: number) => {
+    steppedBack.current = next < step;
+    setStep(next);
+  };
 
   return (
     <>
       <div className="mb-6"><StepIndicator steps={STEPS} current={analysing ? 3 : step} /></div>
       <div className="max-w-[920px]">
         {analysing ? (
-          <AnalysisStep onDone={() => { setAnalysing(false); setStep(4); }} />
+          <AnalysisStep onDone={() => { setAnalysing(false); steppedBack.current = false; setStep(4); }} />
         ) : step === 0 ? (
           <BusinessStep business={business} demoMode={props.demoMode} />
         ) : step === 1 ? (
-          <IdentityStep business={business!} onBack={() => setStep(0)} onNext={() => setStep(2)} />
+          <IdentityStep business={business!} onBack={() => goTo(0)} onNext={() => goTo(2)} />
         ) : step === 2 ? (
           <AccountsStep {...props} onRun={() => setAnalysing(true)} />
         ) : (
-          <ProfileStep profile={props.profile!} assessment={props.assessment!} onBack={() => setStep(2)} />
+          <ProfileStep profile={props.profile!} assessment={props.assessment!} onBack={() => goTo(2)} />
         )}
       </div>
     </>
