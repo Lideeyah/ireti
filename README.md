@@ -13,9 +13,10 @@ npm run dev
 
 Open http://localhost:4300.
 
-- Businesses create an account at `/sign-up`, then complete onboarding (business details, BVN verification, account connection, analysis, credit profile) and apply.
+- Businesses create an account at `/sign-up`, then complete onboarding (business details, BVN verification, account connection, analysis, credit profile) and apply. From there they manage connected accounts, designate the disbursement account, browse the consolidated transaction ledger, track repayments and see who accessed their data.
 - Bank staff sign in at `/sign-in`. In demo mode (`DEMO_MODE=true`) the sign-in page lists the seeded staff accounts; the shared demo password is `ireti-demo-2026`.
-- `/bank/settings` (administrators) holds staff accounts and the demo controls (reset, simulate repayments).
+- `/bank/settings` (administrators) holds staff accounts, integration status and operations tools.
+- `/demo` runs a 21-step guided run that drives the product end to end across both sides, for recording a demo.
 
 ## Stack
 

@@ -24,19 +24,63 @@ Analysis uses recency weighting: the most recent three months count double when 
 
 Each factor scores 0–100 and is rated Strong (≥70), Moderate (≥45) or Weak, with a plain-language **evidence** sentence derived from the actual figures. The overall score is the weighted sum; bands are Strong (≥75), Moderate (≥55), Weak.
 
-## Eligibility (policy-driven)
+## Eligibility: two ceilings, the lower wins
+
+Eligibility is not a single formula. The engine computes two independent ceilings and
+lends against whichever binds, then caps the result at the bank's maximum.
+
+**1. Capacity ceiling** — a balance-sheet view of how much the business can carry.
 
 ```
-eligible = min(policy.maxLoanAmount,
-               round500k(annualNetFlow × policy.eligibility.capacityRatio × score/100 − 0.25 × existingObligations))
+annualNet      = avgNetMonthlyFlow × 12
+capacity       = annualNet × policy.eligibility.capacityRatio × (score / 100)
+                 − 0.25 × existingObligations
+```
+
+The score acts as a risk-adjusted scalar: a business scoring 82 may borrow against 82%
+of the capacity a perfect-scoring business could.
+
+**2. Affordability ceiling** — a cash-flow view of what the business can actually service.
+
+```
+freeCashFlow      = max(0, avgNetMonthlyFlow − monthlyDebtService)
+volatilityHaircut = clamp(1 − cv × policy.eligibility.volatilitySensitivity, 0.5, 1)
+trendHaircut      = clamp(1 + min(0, recentInflowChangePct), 0.6, 1)
+maxInstalment     = (freeCashFlow / policy.eligibility.targetDscr)
+                    × volatilityHaircut × trendHaircut
+affordability     = presentValueOfAnnuity(maxInstalment, rate/12, longestAllowedTenor)
+```
+
+The affordability ceiling is the largest principal whose instalment still clears the
+bank's target debt-service coverage, computed at the longest permitted tenor because
+the borrower chooses the tenor. Two haircuts apply before that: revenue volatility, and
+a declining recent trend. A business whose revenue is falling is lent less, automatically.
+
+```
+eligible    = round500k(min(capacity, affordability, policy.maxLoanAmount))
 recommended = round500k(eligible × policy.eligibility.recommendedShare)
 ```
 
-Repayment window = strongest 3-day recurring inflow window; recommended repayment day = window start + 1.
+**Recommended tenor** is the shortest permitted tenor at which the recommended amount
+still clears the cover target. A tight instalment lengthens the tenor rather than
+shrinking the advance, which is what a credit officer would do by hand.
+
+The assessment reports which ceiling bound it (`bindingConstraint`), both ceiling
+values, free cash flow, the maximum serviceable instalment and the projected cover, so
+an officer can see the reasoning rather than a number.
+
+### Target cover
+
+`targetDscr` defaults to 1.10, set for short-tenor working capital where the advance is
+itself working in the business. Longer-term lending should raise it towards the
+conventional 1.25. Changing it in Lending policy re-prices every subsequent assessment.
 
 ## Policy evaluation
 
-`evaluatePolicy` applies the bank's configured rules: minimum score, maximum debt-service ratio, bank maximum and minimum amounts, minimum transaction coverage. Results are shown as pass/review checks and feed the recommendation.
+`evaluatePolicy` applies the bank's configured rules: minimum score, projected
+debt-service coverage against target, existing debt-service ratio, bank maximum and
+minimum amounts, and minimum transaction coverage. Results show as pass/review checks
+and feed the recommendation.
 
 ## Decision support
 
@@ -44,7 +88,23 @@ Repayment window = strongest 3-day recurring inflow window; recommended repaymen
 
 ## Seeded result for Adebayo Foods Ltd
 
-Running `npm run calibrate` reproduces the seeded analysis: avg inflow ≈ ₦6.8m, outflow ≈ ₦4.0m, net ≈ ₦2.8m, revenue CV ≈ 0.12 (High consistency), window 22nd–24th, score **82 / 100 (Strong)**, eligibility **₦18.5m**, recommended **₦12.0m** over 6 months, with *Existing obligations* rated Moderate.
+Running `npm run calibrate` reproduces the seeded analysis: avg inflow ≈ ₦6.8m, outflow
+≈ ₦4.0m, net ≈ ₦2.8m, revenue CV ≈ 0.12 (High consistency), window 22nd–24th, score
+**82 / 100 (Strong)**.
+
+| | |
+|---|---|
+| Capacity ceiling | ₦18.69m |
+| Affordability ceiling | ₦21.94m |
+| Binding constraint | Capacity |
+| Eligible | **₦18.5m** |
+| Recommended | **₦12.0m** over 6 months |
+| Free cash flow | ₦2.36m / month |
+| Max serviceable instalment | ₦2.01m |
+| Projected cover | 1.12× against a 1.10× target |
+
+`npm run seed:report` prints the same mechanism across the whole seeded portfolio: 17
+businesses bound by capacity, 3 by affordability, and 3 policy exceptions.
 
 ## Production model
 

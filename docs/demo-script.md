@@ -1,6 +1,45 @@
-# Demo script — end to end
+# Demo script
 
-Open `http://localhost:4300`. If the demo has been used before, sign in as the administrator and use **Administration → Reset demo environment**, or run `npm run db:reset`.
+There are two ways to show Ìrètí: the **guided run**, which drives the product itself
+end to end and is what you record; and the **manual walkthrough** below, for when you
+want to narrate at your own pace or answer questions mid-flow.
+
+## Guided run (recorded demo)
+
+Open `/demo` and press **Start guided run**.
+
+The run performs 21 steps against live records, switching between the business, the
+credit officer, operations and compliance as the story requires. It is the product
+being driven, not a reproduction of it: every step calls the same server use cases the
+buttons call, writes the same rows and appends the same audit events.
+
+It begins by clearing and reseeding, so every recording tells the same story.
+
+| Chapter | Steps |
+|---|---|
+| Onboarding | Business details · Identity · Connect Sterling, FirstBank, UBA · Designate account |
+| Analysis | Consolidated ledger · Run analysis · Credit profile |
+| Application | Apply |
+| Bank review | Officer signs in · Open application · Evidence · Assessment · Approve |
+| Disbursement | Operations signs in · Disburse |
+| Repayment | Schedule |
+| Monitoring | Failed collection · Risk case |
+| Audit | Audit ledger |
+
+A control bar sits at the bottom of the screen throughout, showing the chapter, who is
+acting, what is happening and the progress through the run. Pause, skip a step or exit
+at any point. Pace is selectable: slow, normal (about two minutes) or fast.
+
+When the run ends, the records remain, so you can keep clicking through whatever the
+viewer asks about.
+
+### Recording notes
+
+- Run at 1440×900 or wider; the control bar is fixed to the bottom of the viewport.
+- Choose **Slow** if you intend to talk over it, **Normal** for a silent capture.
+- Exit the run (×) before recording any free-form exploration, so the bar is gone.
+
+## Manual walkthrough
 
 ## Accounts
 
