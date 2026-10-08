@@ -10,7 +10,7 @@ export default async function AuditPage() {
   const { events, integrity, total, dataAccess } = await loadAudit();
   return (
     <>
-      <PageHeader eyebrow="Ìrètí / Audit Ledger" title="Audit ledger" description="Chronological, append-only record of consent, data access, assessment, decision, disbursement, repayment and risk events. Private and permissioned; only audit metadata and hashes are stored, never raw financial data, identifiers or credentials." />
+      <PageHeader title="Audit ledger" />
       <Card className="mb-6">
         <StatRow columns={4}>
           <Stat label="Events" size="lg" value={total} sub="Across all applications" />

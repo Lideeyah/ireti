@@ -30,7 +30,7 @@ export default async function RepaymentsPage() {
 
   return (
     <>
-      <PageHeader eyebrow="Repayments" title={`Facility ${activeApplication.reference}`} meta={<><HealthChip health={plan.health} /><span>Mandate {plan.mandateReference}</span><span>·</span><span>Disbursed {formatDate(plan.startedAt)}</span></>} actions={<DemoTag>Demo repayment</DemoTag>} />
+      <PageHeader title={`Facility ${activeApplication.reference}`} meta={<><HealthChip health={plan.health} /><span>Mandate {plan.mandateReference}</span><span>·</span><span>Disbursed {formatDate(plan.startedAt)}</span></>} />
       {failed && (
         <div className="mb-6">
           <Banner tone="danger" title="Repayment attention required" action={<div className="flex gap-2"><RetryRepaymentButton repaymentId={failed.id} variant="primary" /><Link href={`/sme/application/${activeApplication.id}`}><Button size="sm">Contact bank</Button></Link></div>}>
@@ -50,18 +50,18 @@ export default async function RepaymentsPage() {
       </Card>
       <div className="grid xl:grid-cols-[360px_1fr] gap-6">
         <Card>
-          <CardHeader eyebrow="Repayment profile" title="Cash-flow-aware timing" />
+          <CardHeader title="Repayment profile" />
           <div className="space-y-5">
             <Stat label="Strongest recurring inflow" size="lg" value={formatWindow(offer.repaymentWindow)} />
             <Stat label="Average inflow during window" size="lg" value={profile ? formatNairaCompact(profile.avgInflowDuringWindow) : "—"} />
             <Stat label="Recommended repayment date" size="lg" value={ordinal(offer.recommendedRepaymentDay)} />
           </div>
           <Divider />
-          <p className="text-[13px] text-ink-3 leading-relaxed">Repayment timing is recommended from observed cash-flow behaviour. It does not guarantee future account balance or repayment success.</p>
+          <p className="text-[12.5px] text-ink-3">Recommended from observed cash flow; not a guarantee of balance or repayment.</p>
         </Card>
         <div className="space-y-6">
           <Card padded={false}>
-            <ListHeader eyebrow="Schedule" />
+            <ListHeader title="Schedule" />
             <table className="data-table">
               <thead><tr><th>#</th><th>Due</th><th>Window</th><th className="num">Principal</th><th className="num">Interest</th><th className="num">Amount</th><th>Status</th><th></th></tr></thead>
               <tbody>
@@ -81,7 +81,7 @@ export default async function RepaymentsPage() {
             </table>
           </Card>
           <Card padded={false}>
-            <ListHeader eyebrow="Repayment history" />
+            <ListHeader title="History" />
             {history.length === 0 ? <EmptyState title="No repayment history" body="Collections will appear here once the first instalment is processed." /> : (
               <ul className="divide-y divide-line-subtle">
                 {history.map((r) => (

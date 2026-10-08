@@ -8,8 +8,7 @@ export function AuthShell({ children, title, subtitle, footer }: { children: Rea
       <section className="hidden lg:flex flex-col justify-between bg-[var(--neutral-900)] text-white px-14 py-12">
         <Link href="/"><Wordmark size="md" tone="inverse" suffix="SME lending infrastructure" /></Link>
         <div className="max-w-[460px]">
-          <h2 className="text-[34px] leading-[1.15] font-semibold tracking-[-0.015em]">A consolidated view of an SME&apos;s financial behaviour, and an auditable lending decision.</h2>
-          <p className="text-[15px] text-white/65 mt-5 leading-relaxed">Businesses connect their accounts once. The bank sees twelve months of consolidated cash flow, a structured assessment against its own policy, and every access and decision on a permissioned ledger.</p>
+          <h2 className="text-[34px] leading-[1.15] font-semibold tracking-[-0.015em]">Consolidated financials. Structured assessment. Auditable decisions.</h2>
         </div>
         <dl className="grid grid-cols-3 gap-8 text-[13px]">
           <div><dt className="text-white/50 uppercase tracking-[0.08em] text-[11px] font-semibold">Financial data</dt><dd className="mt-1.5 text-white/85">Open Banking connections</dd></div>

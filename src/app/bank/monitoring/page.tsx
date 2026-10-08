@@ -16,7 +16,7 @@ export default async function MonitoringPage() {
   const resolved = cases.length - open.length;
   return (
     <>
-      <PageHeader eyebrow="Ìrètí / Monitoring" title="Portfolio monitoring" description="Health of disbursed facilities and the risk cases raised from repayment, inflow and activity triggers. No collections decision is taken automatically; each trigger opens a case for a person." />
+      <PageHeader title="Monitoring" />
       <Card className="mb-8">
         <StatRow columns={5}>
           <Stat label="Active facilities" size="lg" value={plans.length} sub={`${formatNaira(plans.reduce((a, p) => a + p.plan.outstanding, 0))} outstanding`} />
@@ -28,7 +28,7 @@ export default async function MonitoringPage() {
       </Card>
       <div className="space-y-8">
         <div>
-          <div className="eyebrow mb-3">Open risk cases</div>
+          <h2 className="text-[15px] font-semibold text-ink mb-3">Open cases</h2>
           <Card padded={false}>
             {open.length === 0 ? <EmptyState icon={Radar} title="No risk cases" body="Cases open automatically when a trigger fires: missed or failed repayment, reduced inflows, unusual activity, or a customer access report." /> : (
               <table className="data-table">
@@ -52,7 +52,7 @@ export default async function MonitoringPage() {
         </div>
         <div className="grid xl:grid-cols-[1.4fr_1fr] gap-8">
           <div>
-            <div className="eyebrow mb-3">Disbursed facilities</div>
+            <h2 className="text-[15px] font-semibold text-ink mb-3">Facilities</h2>
             <Card padded={false}>
               {plans.length === 0 ? <EmptyState title="No active facilities" body="Disbursed loans and their repayment health appear here." /> : (
                 <table className="data-table">
@@ -73,7 +73,7 @@ export default async function MonitoringPage() {
             </Card>
           </div>
           <Card>
-            <CardHeader eyebrow="Triggers" title="What opens a case" />
+            <CardHeader title="Case triggers" />
             <ul className="space-y-3 text-[13.5px] text-ink-2">
               <li><span className="text-ink font-medium">Repeated failed debit</span> · {policy.riskThresholds.failedDebitsAtRisk}+ failed collection attempts on an instalment</li>
               <li><span className="text-ink font-medium">Missed repayment</span> · instalment unpaid {policy.repaymentRules.graceDays} days after the window</li>

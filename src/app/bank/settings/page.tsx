@@ -14,10 +14,10 @@ export default async function SettingsPage() {
   const [staff, disbursed] = await Promise.all([loadBankStaff(), prisma.loanApplication.findMany({ where: { status: "disbursed" }, include: { business: true }, orderBy: { updatedAt: "desc" } })]);
   return (
     <>
-      <PageHeader eyebrow="Ìrètí / Administration" title="Administration" description="Bank staff accounts and, in the demo environment, controls for resetting and simulating the end-to-end journey." />
+      <PageHeader title="Administration" />
       <div className="grid xl:grid-cols-2 gap-6">
         <Card padded={false}>
-          <ListHeader eyebrow="Bank staff" title={`${staff.length} accounts`} description="Roles determine permissions across review, decisions, disbursement, collections, audit and policy. In production, accounts and roles come from the bank's identity provider." />
+          <ListHeader title="Bank staff" description={`${staff.length} accounts`} />
           <table className="data-table">
             <thead><tr><th>Name</th><th>Email</th><th>Role</th></tr></thead>
             <tbody>{staff.map((s) => <tr key={s.id}><td><div className="text-ink">{s.name}</div><div className="text-[12.5px] text-ink-3">{s.title}</div></td><td className="text-ink-2">{s.email}</td><td><Chip family={s.role === "ADMIN" ? "info" : "neutral"}>{ROLE_LABELS[s.role as Role]}</Chip></td></tr>)}</tbody>
@@ -26,7 +26,7 @@ export default async function SettingsPage() {
         {isDemoMode() ? (
           <DemoControls facilities={disbursed.map((a) => ({ id: a.id, reference: a.reference, business: a.business.name }))} />
         ) : (
-          <Card><CardHeader eyebrow="Demo controls" title="Disabled" description="Set DEMO_MODE=true to enable reset and simulation controls in a demonstration environment." /></Card>
+          <Card><CardHeader title="Demo controls disabled" /></Card>
         )}
       </div>
     </>

@@ -15,7 +15,7 @@ export default async function ActivityPage() {
   const accessEvents = activity.filter((e) => e.type === "DATA_ACCESS").length;
   return (
     <>
-      <PageHeader eyebrow="Data access" title="Who has accessed your financial data" description="A customer-facing view of the audit ledger. Every access to your financial profile, every consent and every decision is recorded with the actor and time." meta={<><span className="tnum">{activity.length} events</span><span>·</span><span className="tnum">{accessEvents} data-access events</span></>} />
+      <PageHeader title="Data access" meta={<><span className="tnum">{activity.length} events</span><span>·</span><span className="tnum">{accessEvents} data-access events</span></>} />
       <Card padded={false}>
         {activity.length === 0 ? <EmptyState icon={Activity} title="No activity yet" body="Activity appears once your business is onboarded and accounts are connected." /> : (
           <table className="data-table">

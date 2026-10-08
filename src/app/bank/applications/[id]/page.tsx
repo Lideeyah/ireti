@@ -9,7 +9,7 @@ import { PageHeader } from "@/components/shell/PageHeader";
 import { Card, CardHeader, Field, Stat, StatRow, Divider, ListHeader } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { ApplicationStatusChip, RatingChip, RiskGradeChip, Chip, RepaymentStatusChip, HealthChip } from "@/components/ui/Chip";
-import { Banner, DemoTag } from "@/components/ui/Banner";
+import { Banner } from "@/components/ui/Banner";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Require } from "@/components/shell/Require";
 import { CashFlowChart, InflowOutflowBars } from "@/components/charts/CashFlowChart";
@@ -33,12 +33,12 @@ export default async function BankApplicationReview({ params, searchParams }: { 
   const lastSynced = connections.map((c) => c.lastSyncedAt).filter(Boolean).sort().pop();
   const decidable = ["submitted", "under_review", "additional_information"].includes(app.status);
   const demo = isDemoMode();
+  void demo;
 
   return (
     <>
       <Link href="/bank/applications" className="inline-flex items-center gap-1.5 text-[13px] text-ink-3 hover:text-ink mb-3"><ArrowLeft size={13} /> Application queue</Link>
       <PageHeader
-        eyebrow="Ìrètí / Credit Review"
         title={business.name}
         meta={<><ApplicationStatusChip status={app.status} health={plan?.health} /><span>Submitted {formatRelative(app.submittedAt)}</span>{app.reviewerName && <><span>·</span><span>Reviewer {app.reviewerName}</span></>}</>}
         actions={decidable ? <Require role={user.role} permission="bank:decide_application" inline label="Decisions require"><DecisionActions app={app} offer={offer} assessment={assessment} reviewerName={user.name} reviewerTitle={user.title ?? ""} /></Require> : undefined}
@@ -63,7 +63,7 @@ export default async function BankApplicationReview({ params, searchParams }: { 
 
       {app.disbursement && (
         <Card className="mb-6">
-          <CardHeader eyebrow="Disbursement" title={app.disbursement.status === "confirmed" ? "Disbursement confirmed" : app.disbursement.status === "failed" ? "Disbursement failed" : app.disbursement.status === "processing" ? "Initiating disbursement" : "Preparing disbursement"} action={<DemoTag>Demo disbursement</DemoTag>} />
+          <CardHeader title={app.disbursement.status === "confirmed" ? "Disbursement confirmed" : app.disbursement.status === "failed" ? "Disbursement failed" : app.disbursement.status === "processing" ? "Initiating disbursement" : "Preparing disbursement"} />
           <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-x-6 gap-y-5">
             <Field label="Amount"><span className="tnum font-medium">{formatNaira(app.amount)}</span></Field>
             <Field label="Destination account"><span className="tnum">{app.disbursement.institutionName} {app.disbursement.destinationMasked}</span></Field>
@@ -82,7 +82,7 @@ export default async function BankApplicationReview({ params, searchParams }: { 
           {app.disbursement.status === "failed" && <div className="mt-5"><Banner tone="danger" title="Reason">{app.disbursement.failureReason}</Banner></div>}
           {app.disbursement.status !== "confirmed" && (
             <div className="mt-5 pt-5 border-t border-line-subtle flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <p className="text-[13px] text-ink-3">Disbursement is only shown as confirmed when the banking adapter returns a successful response.</p>
+              <p className="text-[13px] text-ink-3">Confirmed only on a successful banking response.</p>
               <Require role={user.role} permission="bank:manage_disbursement" inline label="Disbursement requires"><DisbursementActions applicationId={app.id} status={app.disbursement.status} demoMode={demo} /></Require>
             </div>
           )}
@@ -91,7 +91,7 @@ export default async function BankApplicationReview({ params, searchParams }: { 
 
       {plan && (
         <Card className="mb-6">
-          <CardHeader eyebrow="Repayment" title="Repayment plan" action={<HealthChip health={plan.health} />} />
+          <CardHeader title="Repayment plan" action={<HealthChip health={plan.health} />} />
           <StatRow columns={4}>
             <Stat label="Outstanding" value={formatNaira(plan.outstanding)} sub={`Paid ${formatNaira(plan.paidToDate)}`} />
             <Stat label="Next instalment" value={nextRepayment ? formatNaira(nextRepayment.amount) : "—"} sub={nextRepayment ? <RepaymentStatusChip status={nextRepayment.status} /> : "Settled"} />
@@ -101,7 +101,7 @@ export default async function BankApplicationReview({ params, searchParams }: { 
           <div className="mt-6"><RepaymentTimeline repayments={repayments} /></div>
           {nextRepayment && (
             <div className="mt-6 pt-5 border-t border-line-subtle flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <p className="text-[13px] text-ink-3">Collections run through the direct-debit mandate on the due date.{demo ? " In this environment the next debit can be triggered here." : ""}</p>
+              <p className="text-[13px] text-ink-3">Collected by direct-debit mandate on the due date.</p>
               <Require role={user.role} permission="bank:process_repayment" inline label="Collections require"><RepaymentActions repaymentId={nextRepayment.id} failed={nextRepayment.status === "failed"} demoMode={demo} /></Require>
             </div>
           )}
@@ -112,7 +112,7 @@ export default async function BankApplicationReview({ params, searchParams }: { 
       <div className="grid xl:grid-cols-[1.5fr_1fr] gap-6">
         <div className="space-y-6">
           <Card>
-            <CardHeader eyebrow="Business overview" title={business.name} />
+            <CardHeader title="Business" />
             <div className="grid grid-cols-2 md:grid-cols-3 gap-x-8 gap-y-5">
               <Field label="Business name">{business.name}</Field>
               <Field label="Industry">{business.industry}</Field>
@@ -123,7 +123,7 @@ export default async function BankApplicationReview({ params, searchParams }: { 
             </div>
           </Card>
           <Card>
-            <CardHeader eyebrow="Financial overview" title="Revenue, expenses and net cash flow" description={`${profile.coverageMonths} months of consolidated transactions. The most recent three months are weighted more heavily in the analysis.`} />
+            <CardHeader title="Cash flow, 12 months" />
             <CashFlowChart monthly={profile.monthly} />
             <Divider />
             <StatRow columns={4}>
@@ -133,11 +133,11 @@ export default async function BankApplicationReview({ params, searchParams }: { 
               <Stat label="Recent trend" value={<span className={profile.recentInflowChangePct >= 0 ? "text-[var(--delta-positive)]" : "text-[var(--delta-negative)]"}>{profile.recentInflowChangePct >= 0 ? "+" : "−"}{Math.abs(Math.round(profile.recentInflowChangePct * 100))}%</span>} sub="Last 3 months vs prior 9" />
             </StatRow>
             <Divider />
-            <div className="eyebrow mb-3">Monthly inflow / outflow comparison</div>
+            <div className="text-[13px] font-medium text-ink-2 mb-3">Monthly inflow and outflow</div>
             <InflowOutflowBars monthly={profile.monthly} height={180} />
           </Card>
           <Card padded={false}>
-            <ListHeader eyebrow="Credit assessment" description={`Proprietary assessment · model ${assessment.modelVersion} · policy ${assessment.policyVersion} · generated ${formatDateTime(assessment.generatedAt)}`} action={<><span className="tnum text-[26px] font-semibold text-ink">{assessment.score}<span className="text-ink-3 text-[14px] font-medium"> / 100</span></span><DemoTag>Demo credit assessment</DemoTag></>} />
+            <ListHeader title="Credit assessment" description={`Model ${assessment.modelVersion} · policy ${assessment.policyVersion}`} action={<span className="tnum text-[22px] font-semibold text-ink">{assessment.score}<span className="text-ink-3 text-[13px] font-medium"> / 100</span></span>} />
             <ul className="divide-y divide-line-subtle">{assessment.factors.map((f) => <FactorRow key={f.key} factor={f} />)}</ul>
             <div className="px-6 py-4 border-t border-line-subtle bg-sunken">
               <div className="eyebrow mb-2">Policy evaluation · {assessment.policyPassed ? "all checks passed" : `${assessment.policyChecks.filter((c) => !c.passed).length} exception(s)`}</div>
@@ -147,7 +147,8 @@ export default async function BankApplicationReview({ params, searchParams }: { 
         </div>
         <div className="space-y-6">
           <Card>
-            <CardHeader eyebrow="Decision support" title={assessment.recommendation.headline} description="The system provides a recommendation; the bank officer remains responsible for the lending decision." />
+            <CardHeader title="Decision support" />
+            <div className="text-[16px] font-semibold text-ink leading-snug mb-3">{assessment.recommendation.headline}</div>
             <div className="flex items-center gap-3 mb-4">
               <Chip family={assessment.recommendation.action === "approve" ? "success" : assessment.recommendation.action === "review" ? "warning" : "danger"}>{assessment.recommendation.action === "approve" ? "Recommend approve" : assessment.recommendation.action === "review" ? "Recommend review" : "Recommend decline"}</Chip>
               <span className="text-[13px] text-ink-3">Confidence <span className="text-ink font-medium">{assessment.recommendation.confidence}</span></span>
@@ -162,7 +163,7 @@ export default async function BankApplicationReview({ params, searchParams }: { 
             <ul className="list-disc pl-5 space-y-1.5 text-[14px] text-ink-2">{assessment.repaymentObservations.map((r) => <li key={r}>{r}</li>)}</ul>
           </Card>
           <Card>
-            <CardHeader eyebrow="Account exposure" title={`${connections.filter((c) => c.status === "connected").length} institutions connected`} />
+            <CardHeader title="Account exposure" description={`${connections.filter((c) => c.status === "connected").length} institutions`} />
             <ul className="divide-y divide-line-subtle">
               {accounts.map((a) => (
                 <li key={a.id} className="flex items-center justify-between py-3 first:pt-0">
@@ -173,19 +174,19 @@ export default async function BankApplicationReview({ params, searchParams }: { 
             </ul>
             <Divider />
             <div className="grid grid-cols-3 gap-4">
-              <Field label="Total observed balance"><span className="tnum font-medium">{formatNairaCompact(totalBalance, 2)}</span></Field>
-              <Field label="Transaction coverage"><span className="tnum">{profile.coverageMonths} months</span></Field>
+              <Field label="Observed balance"><span className="tnum font-medium">{formatNairaCompact(totalBalance, 2)}</span></Field>
+              <Field label="Coverage"><span className="tnum">{profile.coverageMonths} months</span></Field>
               <Field label="Last synced">{lastSynced ? formatRelative(lastSynced).split(",")[0] : "—"}</Field>
             </div>
           </Card>
           <Card>
-            <CardHeader eyebrow="Documents" title={documents.length ? `${documents.length} on file` : "No documents requested"} />
-            {documents.length === 0 ? <p className="text-[13.5px] text-ink-3">Required documents per policy: {policy.requiredDocuments.join(", ")}. Verified at onboarding.</p> : (
+            <CardHeader title="Documents" />
+            {documents.length === 0 ? <p className="text-[13px] text-ink-3">Policy documents verified at onboarding: {policy.requiredDocuments.join(", ")}.</p> : (
               <ul className="space-y-2.5">{documents.map((d) => <li key={d.id} className="flex items-center justify-between text-[14px]"><span className="text-ink">{d.type}</span><Chip family={d.status === "requested" ? "warning" : "success"}>{d.status === "requested" ? "Requested" : d.status === "provided" ? "Provided" : "Verified"}</Chip></li>)}</ul>
             )}
           </Card>
           <Card padded={false}>
-            <ListHeader eyebrow="Application events" />
+            <ListHeader title="Events" />
             <ul className="divide-y divide-line-subtle max-h-[440px] overflow-y-auto">
               {events.map((e) => (
                 <li key={e.id} className="px-6 py-2.5 flex items-start gap-4 text-[13px]">

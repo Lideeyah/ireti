@@ -7,7 +7,6 @@ import { Card, Field, Stat, StatRow } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { ConnectionStatusChip } from "@/components/ui/Chip";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { DemoTag } from "@/components/ui/Banner";
 import { ConnectionButtons } from "@/components/sme/ApplicationActions";
 import { formatNaira, formatRelative } from "@/lib/format";
 
@@ -18,7 +17,7 @@ export default async function AccountsPage() {
   const connected = connections.filter((c) => c.status === "connected").length;
   return (
     <>
-      <PageHeader eyebrow="Connected accounts" title={`${connected} ${connected === 1 ? "institution" : "institutions"} connected`} description="Accounts connected through authorised Open Banking connections. Ìrètí reads balances and transaction history only; it never holds your banking credentials." actions={<><DemoTag>Simulated bank connection</DemoTag><Link href="/sme/onboarding"><Button variant="primary" size="sm"><Plus size={13} /> Add institution</Button></Link></>} />
+      <PageHeader title="Connected accounts" meta={<span>{connected} {connected === 1 ? "institution" : "institutions"} connected</span>} actions={<><Link href="/sme/onboarding"><Button variant="primary" size="sm"><Plus size={13} /> Add institution</Button></Link></>} />
       {connections.length === 0 ? (
         <Card><EmptyState icon={Landmark} title="No connected accounts" body="Connect your business accounts to build a consolidated financial profile." action={<Link href="/sme/onboarding"><Button size="sm" variant="primary">Connect accounts</Button></Link>} /></Card>
       ) : (

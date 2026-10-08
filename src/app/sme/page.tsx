@@ -18,7 +18,7 @@ export default async function SmeHome() {
   if (!business) {
     return (
       <>
-        <PageHeader eyebrow="Welcome" title={`Welcome, ${user.name.split(" ")[0]}`} description="Complete onboarding to build a consolidated financial profile and see what credit your business is eligible for." />
+        <PageHeader title={`Welcome, ${user.name.split(" ")[0]}`} description="Complete onboarding to see your credit eligibility." />
         <Card className="max-w-[880px]">
           <ol className="grid sm:grid-cols-5 gap-5">
             {["Business details", "Identity verification", "Connect accounts", "Financial analysis", "Credit profile"].map((s, i) => (
@@ -29,7 +29,7 @@ export default async function SmeHome() {
             ))}
           </ol>
           <div className="mt-6 pt-5 border-t border-line-subtle flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <p className="text-[13.5px] text-ink-3">Takes about five minutes. No banking passwords are entered into Ìrètí.</p>
+            <p className="text-[13px] text-ink-3">About five minutes. No banking passwords are entered here.</p>
             <Link href="/sme/onboarding"><Button variant="primary">Start onboarding <ArrowRight size={14} /></Button></Link>
           </div>
         </Card>
@@ -44,7 +44,7 @@ export default async function SmeHome() {
 
   return (
     <>
-      <PageHeader eyebrow="Welcome back" title={business.name} meta={<><span>{business.industry}</span><span>·</span><span>{business.location}</span><span>·</span><span>{connected.length} {connected.length === 1 ? "institution" : "institutions"} connected</span></>} actions={!activeApplication && assessment ? <Link href="/sme/application"><Button variant="primary">Apply for credit <ArrowRight size={14} /></Button></Link> : undefined} />
+      <PageHeader title={business.name} meta={<><span>{business.industry}</span><span>·</span><span>{business.location}</span><span>·</span><span>{connected.length} {connected.length === 1 ? "institution" : "institutions"} connected</span></>} actions={!activeApplication && assessment ? <Link href="/sme/application"><Button variant="primary">Apply for credit <ArrowRight size={14} /></Button></Link> : undefined} />
 
       {incomplete && (
         <Card className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -69,7 +69,7 @@ export default async function SmeHome() {
         <div className="space-y-6">
           {plan && (
             <Card>
-              <CardHeader eyebrow="Repayment" title="Active facility" action={<Link href="/sme/repayments"><Button size="sm">View repayments</Button></Link>} />
+              <CardHeader title="Active facility" action={<Link href="/sme/repayments"><Button size="sm">View repayments</Button></Link>} />
               <StatRow columns={2}>
                 <Stat label="Outstanding balance" size="lg" value={formatNaira(plan.outstanding)} sub={`of ${formatNaira(plan.totalRepayable)} total`} />
                 <Stat label="Next repayment" size="lg" value={nextRepayment ? formatNaira(nextRepayment.amount) : "—"} sub={nextRepayment && <RepaymentStatusChip status={nextRepayment.status} />} />
@@ -80,7 +80,7 @@ export default async function SmeHome() {
           )}
 
           <Card>
-            <CardHeader eyebrow="Latest financial analysis" title={profile ? `Generated ${formatRelative(profile.generatedAt)}` : "No analysis yet"} action={profile && <Link href="/sme/credit-profile"><Button size="sm">Credit profile</Button></Link>} />
+            <CardHeader title="Financial analysis" description={profile ? `Generated ${formatRelative(profile.generatedAt)}` : undefined} action={profile && <Link href="/sme/credit-profile"><Button size="sm">Credit profile</Button></Link>} />
             {profile ? (
               <>
                 <div className="grid grid-cols-3 gap-6 mb-5">
@@ -92,7 +92,6 @@ export default async function SmeHome() {
                   <div className="text-[11.5px] text-ink-3">Net monthly flow, last 12 months</div>
                   <NetFlowSparkline monthly={profile.monthly} height={64} />
                 </div>
-                <p className="text-[13.5px] text-ink-2 mt-4 leading-relaxed">{profile.narrative}</p>
               </>
             ) : (
               <EmptyState icon={FileText} title="No financial analysis" body="Connect your accounts and run the analysis to see your consolidated financial profile." action={<Link href="/sme/onboarding"><Button size="sm" variant="primary">Go to onboarding</Button></Link>} />
@@ -101,7 +100,7 @@ export default async function SmeHome() {
 
           {activeApplication && (
             <Card>
-              <CardHeader eyebrow="Application" title={activeApplication.reference} action={<Link href={`/sme/application/${activeApplication.id}`}><Button size="sm">View application</Button></Link>} />
+              <CardHeader title={`Application ${activeApplication.reference}`} action={<Link href={`/sme/application/${activeApplication.id}`}><Button size="sm">View application</Button></Link>} />
               <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                 <Field label="Requested"><span className="tnum">{formatNaira(activeApplication.amount)}</span></Field>
                 <Field label="Tenor">{activeApplication.tenorMonths} months</Field>
@@ -115,7 +114,7 @@ export default async function SmeHome() {
 
         <div className="space-y-6">
           <Card padded={false}>
-            <ListHeader eyebrow="Connected institutions" title={`${connected.length} connected`} action={<Link href="/sme/accounts"><Button size="sm" variant="ghost">Manage</Button></Link>} />
+            <ListHeader title="Connected institutions" action={<Link href="/sme/accounts"><Button size="sm" variant="ghost">Manage</Button></Link>} />
             {connected.length === 0 ? (
               <EmptyState icon={Landmark} title="No connected accounts" body="Connect your business accounts through an authorised Open Banking connection." />
             ) : (
@@ -137,7 +136,7 @@ export default async function SmeHome() {
           </Card>
 
           <Card padded={false}>
-            <ListHeader eyebrow="Recent activity" title="Who accessed your data" action={<Link href="/sme/activity"><Button size="sm" variant="ghost">All activity</Button></Link>} />
+            <ListHeader title="Recent activity" action={<Link href="/sme/activity"><Button size="sm" variant="ghost">All activity</Button></Link>} />
             {activity.length === 0 ? (
               <EmptyState title="No activity yet" body="Consent, data access and decision events will be listed here." />
             ) : (

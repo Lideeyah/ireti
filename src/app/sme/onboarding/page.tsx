@@ -9,7 +9,7 @@ export default async function OnboardingPage() {
   const { business, connections, accounts, profile, assessment } = await loadSmeBundle(user);
   return (
     <>
-      <PageHeader eyebrow="Onboarding" title="Build your financial profile" description="Five steps: business details, identity verification, account connection, analysis and your credit profile." />
+      <PageHeader title="Onboarding" />
       <OnboardingFlow business={business} connections={connections} accounts={accounts} profile={profile} assessment={assessment} demoMode={isDemoMode()} hasApplication={false} />
     </>
   );

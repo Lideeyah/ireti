@@ -13,7 +13,7 @@ export default async function SignInPage() {
   if (user) redirect(user.organisationType === "bank" ? "/bank" : "/sme");
   const demo = isDemoMode();
   return (
-    <AuthShell title="Sign in" subtitle="Business owners and bank staff sign in with their own accounts. Access is scoped to your organisation and role." footer={<p>New business? <Link href="/sign-up" className="text-link hover:underline">Create a business account</Link>. Bank staff accounts are provisioned by your administrator.</p>}>
+    <AuthShell title="Sign in" subtitle="Business owners and bank staff." footer={<p>New business? <Link href="/sign-up" className="text-link hover:underline">Create an account</Link>.</p>}>
       <SignInForm demoAccounts={demo ? DEMO_ACCOUNTS : []} demoPassword={demo ? "ireti-demo-2026" : undefined} />
     </AuthShell>
   );

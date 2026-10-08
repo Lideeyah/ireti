@@ -10,7 +10,7 @@ export default async function SignUpPage() {
   const user = await getSessionUser();
   if (user) redirect(user.organisationType === "bank" ? "/bank" : "/sme");
   return (
-    <AuthShell title="Create a business account" subtitle="Set up access for your business, then complete onboarding: business details, identity verification and account connection." footer={<p>Already have an account? <Link href="/sign-in" className="text-link hover:underline">Sign in</Link>.</p>}>
+    <AuthShell title="Create a business account" subtitle="Then complete onboarding in about five minutes." footer={<p>Already have an account? <Link href="/sign-in" className="text-link hover:underline">Sign in</Link>.</p>}>
       <SignUpForm />
     </AuthShell>
   );

@@ -8,7 +8,7 @@ export default async function ApplicationsPage() {
   const rows = await loadQueue();
   return (
     <>
-      <PageHeader eyebrow="Ìrètí / Lending Operations" title="Application queue" description="Click a row to open the review. New applications move to Under review when first opened, and the access is recorded in the audit ledger." />
+      <PageHeader title="Applications" />
       <ApplicationQueue rows={rows} />
     </>
   );

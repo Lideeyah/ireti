@@ -35,7 +35,7 @@ export default async function SmeApplicationDetail({ params, searchParams }: { p
 
   return (
     <>
-      <PageHeader eyebrow="Application" title={app.reference} meta={<><ApplicationStatusChip status={app.status} health={plan?.health} /><span>Submitted {formatDate(app.submittedAt)}</span></>} actions={plan && <Link href="/sme/repayments"><Button>View repayments</Button></Link>} />
+      <PageHeader title={app.reference} meta={<><ApplicationStatusChip status={app.status} health={plan?.health} /><span>Submitted {formatDate(app.submittedAt)}</span></>} actions={plan && <Link href="/sme/repayments"><Button>View repayments</Button></Link>} />
       {submitted && app.status === "submitted" && (
         <div className="mb-6"><Banner tone="success" title={`Application submitted — ${app.reference}`}>Status: Under review. The bank has been notified, and every access to your financial profile will appear in the activity log below.</Banner></div>
       )}
@@ -48,7 +48,7 @@ export default async function SmeApplicationDetail({ params, searchParams }: { p
       <div className="grid xl:grid-cols-[1fr_1.2fr] gap-6">
         <div className="space-y-6">
           <Card>
-            <CardHeader eyebrow="Progress" title="Application timeline" />
+            <CardHeader title="Timeline" />
             <ol>
               {timeline.map((t, i) => (
                 <li key={t.label} className="flex gap-4">
@@ -68,7 +68,7 @@ export default async function SmeApplicationDetail({ params, searchParams }: { p
             </ol>
           </Card>
           <Card>
-            <CardHeader eyebrow="Terms" title="Requested facility" />
+            <CardHeader title="Facility terms" />
             <div className="grid grid-cols-2 gap-x-8 gap-y-5">
               <Field label="Requested"><span className="tnum font-medium">{formatNaira(app.amount)}</span></Field>
               <Field label="Purpose">{app.purpose}</Field>
@@ -82,7 +82,7 @@ export default async function SmeApplicationDetail({ params, searchParams }: { p
           </Card>
         </div>
         <Card padded={false}>
-          <ListHeader eyebrow="Activity" description="Every access to your financial data and every decision on this application, recorded in the audit ledger." action={<ReportAccessButton applicationId={app.id} />} />
+          <ListHeader title="Activity" action={<ReportAccessButton applicationId={app.id} />} />
           {events.length === 0 ? <EmptyState title="No activity yet" /> : (
             <ul className="divide-y divide-line-subtle">
               {events.map((e) => (

@@ -21,7 +21,7 @@ export function DemoControls({ facilities }: { facilities: { id: string; referen
   };
   return (
     <Card>
-      <CardHeader eyebrow="Demo controls" title="Reset and simulate" description="Each control runs the real services and records the same audit events as the normal flow. Approval and disbursement are performed from the application review screen." />
+      <CardHeader title="Demo controls" />
       {msg && <div className="mb-5"><Banner tone={msg.tone}>{msg.text}</Banner></div>}
       <div className="space-y-5">
         <div>
