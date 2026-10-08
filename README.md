@@ -7,7 +7,8 @@ SME lending infrastructure for commercial banks: consolidated financial view thr
 ```bash
 npm install
 cp .env.example .env     # defaults work for local development
-npm run db:reset         # creates prisma/dev.db and seeds the demo bank, staff and queue
+npm run db:push          # creates prisma/dev.db from the schema
+npm run db:seed          # installs the bank, staff, policy and portfolio
 npm run dev
 ```
 
@@ -30,7 +31,7 @@ Next.js 15 (App Router, server components and server actions) · TypeScript · P
 | `npm run build` / `npm start` | Production build and server |
 | `npm run db:push` | Apply the Prisma schema to the database |
 | `npm run db:seed` | Seed demo data (idempotent for accounts and policy) |
-| `npm run db:reset` | Wipe, re-create and reseed the database |
+| `npm run db:reset` | Clear every record and reinstall the seed |
 | `npm run typecheck` | TypeScript check |
 | `npm run calibrate` | Print the seeded Adebayo Foods analysis |
 | `npm run seed:report` | Print every seeded application's score and eligibility |

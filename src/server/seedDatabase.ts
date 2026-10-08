@@ -1,8 +1,10 @@
-import "server-only";
 import bcrypt from "bcryptjs";
 import { buildSeed, USERS, ORGS } from "@/lib/seed/demoData";
 import { DEFAULT_POLICY } from "@/lib/policy/defaultPolicy";
 import { prisma } from "./db";
+
+// No `server-only` guard here: seeding is also run from the command line, and the
+// modules that expose it to the application carry the guard themselves.
 
 /** Shared password for the seeded colleague accounts in non-production environments. */
 export const SEED_PASSWORD = "ireti-demo-2026";
